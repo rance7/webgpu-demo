@@ -23,6 +23,10 @@ const config = {
                 use: 'ts-loader',
                 exclude: /node_modules/u,
             },
+            {
+                test: /\.txt/,
+                type: 'asset/source'
+            },
             // {
             //     test: /.scss$/ui,
             //     use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
