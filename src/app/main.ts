@@ -1,6 +1,5 @@
 import { drawCanvas } from './draw';
 import { Render, WebGPU } from './lib/model.lib';
-import { Target } from './lib/target.lib';
 import { initRender } from './render';
 import { initWebgpu } from './webgpu';
 
@@ -15,9 +14,7 @@ async function main(): Promise<void> {
         return;
     }
 
-    const target: Target = new Target(render);
-
-    drawCanvas(target);
+    drawCanvas(render);
 }
 
 await main();

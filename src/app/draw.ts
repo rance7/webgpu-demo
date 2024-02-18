@@ -1,11 +1,12 @@
-import { Target } from './lib/target.lib';
+import { Render, Target } from './lib/model.lib';
+import { initTarget, endDraw, doDraw, beginDraw } from './target';
 
-export function drawCanvas(target: Target): void {
-    target.beginDraw();
+export function drawCanvas(render: Render): void {
+    const target: Target = initTarget(render);
 
-    target.doDraw();
+    beginDraw(target);
+    doDraw(target);
+    endDraw(target);
 
-    target.endDraw();
-
-    window.requestAnimationFrame(() => drawCanvas(target));
+    window.requestAnimationFrame(() => drawCanvas(render));
 }
