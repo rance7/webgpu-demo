@@ -1,0 +1,23 @@
+{
+    "author": "Rance",
+    "devDependencies": {
+        "@ts-all/eslint-config": "^0.1.18",
+        "html-webpack-plugin": "^5.6.0",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.3.3",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4",
+        "webpack-dev-server": "^4.15.1"
+    },
+    "license": "ISC",
+    "main": "app.js",
+    "name": "webgpu-startup",
+    "scripts": {
+        "amend": "git commit --all --amend --no-edit --date=now && git push -f",
+        "build": "webpack --mode production",
+        "debug:serve": "http-server -p 8080 ./dist",
+        "start": "webpack serve"
+    },
+    "type": "module",
+    "version": "1.0.0"
+}
