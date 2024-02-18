@@ -1,5 +1,5 @@
 /* eslint-disable no-alert */
-import { Render, Target } from './lib/model.lib';
+import { Component, Render, Target } from './lib/model.lib';
 
 export function initTarget(render: Render, commandEncoder?: GPUCommandEncoder, passEncoder?: GPURenderPassEncoder): Target {
     return { render, commandEncoder, passEncoder };
@@ -21,13 +21,14 @@ export function beginDraw(target: Target): void {
     );
 }
 
-export function doDraw(target: Target): void {
+export function doDraw(target: Target, component: Component): void {
     if (!target.passEncoder) {
         alert('passEncoder is null');
         return;
     }
-    target.passEncoder.setPipeline(target.render.pipeline);
-    target.passEncoder.draw(3);
+    target.passEncoder.setPipeline(component.part.render.pipeline);
+    target.passEncoder.setVertexBuffer(0, component.part.vertexBuffer);
+    target.passEncoder.draw(component.part.vertexNumber);
 }
 
 export function endDraw(target: Target): void {

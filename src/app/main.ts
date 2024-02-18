@@ -1,5 +1,7 @@
+import { initComponent } from './component';
 import { drawCanvas } from './draw';
-import { Render, WebGPU } from './lib/model.lib';
+import { Component, Part, Render, WebGPU } from './lib/model.lib';
+import { initPart } from './part';
 import { initRender } from './render';
 import { initWebgpu } from './webgpu';
 
@@ -14,7 +16,13 @@ async function main(): Promise<void> {
         return;
     }
 
-    drawCanvas(render);
+    const part: Part | null = await initPart(render);
+    if (!part) {
+        return;
+    }
+    const component: Component = initComponent(part);
+
+    drawCanvas(component);
 }
 
 await main();

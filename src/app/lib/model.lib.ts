@@ -13,10 +13,12 @@ export interface Render {
 
 export interface Part {
     render: Render;
+    vertexBuffer: GPUBuffer;
+    vertexNumber: number;
 }
 
 export interface Component {
-    render: Render;
+    part: Part;
 }
 
 export interface Target {

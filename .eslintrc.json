@@ -2,6 +2,8 @@
     "extends": "@ts-all",
     "root": true,
     "rules": {
-        "@typescript-eslint/naming-convention": "off"
+        "unicorn/consistent-destructuring": "off",
+        "@typescript-eslint/naming-convention": "off",
+        "prefer-destructuring": "off"
     }
 }
