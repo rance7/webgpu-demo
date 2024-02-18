@@ -1,14 +1,18 @@
-import { Render } from "./model.lib";
+/* eslint-disable no-alert */
+import { Render } from './model.lib';
 
 export class Target {
-    private render: Render;
-    private commandEncoder: GPUCommandEncoder | null;
-    private passEncoder: GPURenderPassEncoder | null;
 
-    constructor(render: Render) {
+    private readonly render: Render;
+
+    private commandEncoder: GPUCommandEncoder | undefined;
+
+    private passEncoder: GPURenderPassEncoder | undefined;
+
+    public constructor(render: Render, commandEncoder?: GPUCommandEncoder, passEncoder?: GPURenderPassEncoder) {
         this.render = render;
-        this.commandEncoder = null;
-        this.passEncoder = null;
+        this.commandEncoder = commandEncoder;
+        this.passEncoder = passEncoder;
     }
 
     public beginDraw(): void {
@@ -18,12 +22,13 @@ export class Target {
                 colorAttachments: [
                     {
                         view: this.render.webgpu.context.getCurrentTexture().createView(),
-                        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
                         loadOp: 'clear',
                         storeOp: 'store',
-                    }
-                ]
-            })
+                    },
+                ],
+            },
+        );
     }
 
     public doDraw(): void {
@@ -33,7 +38,7 @@ export class Target {
         }
         this.passEncoder.setPipeline(this.render.pipeline);
         this.passEncoder.draw(3);
-    };
+    }
 
     public endDraw(): void {
         if (!this.passEncoder || !this.commandEncoder) {
@@ -42,6 +47,6 @@ export class Target {
         }
         this.passEncoder.end();
         this.render.webgpu.device.queue.submit([this.commandEncoder.finish()]);
-    };
+    }
 
 }

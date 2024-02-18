@@ -1,6 +1,6 @@
-import { Target } from "./lib/target.lib.js";
+import { Target } from './lib/target.lib';
 
-export function drawCanvas(target: Target) {
+export function drawCanvas(target: Target): void {
     target.beginDraw();
 
     target.doDraw();

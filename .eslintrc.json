@@ -1,0 +1,7 @@
+{
+    "extends": "@ts-all",
+    "root": true,
+    "rules": {
+        "@typescript-eslint/naming-convention": "off"
+    }
+}

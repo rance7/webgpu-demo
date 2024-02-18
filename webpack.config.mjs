@@ -11,7 +11,10 @@ const config = {
         // './src/styles/style.scss',
     ],
     devServer: {
-        static: false,
+        static: {
+            directory: path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), 'assets'),
+            publicPath: '/assets'
+        },
         watchFiles: ['src/**/*'],
         liveReload: true,
         port: 8080,
@@ -22,10 +25,6 @@ const config = {
                 test: /.ts$/u,
                 use: 'ts-loader',
                 exclude: /node_modules/u,
-            },
-            {
-                test: /\.txt/,
-                type: 'asset/source'
             },
             // {
             //     test: /.scss$/ui,

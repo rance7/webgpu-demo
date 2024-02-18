@@ -2,6 +2,7 @@ import { WebGPU } from './lib/model.lib';
 
 export async function initWebgpu(): Promise<WebGPU | null> {
     const { gpu } = navigator;
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!gpu) { return null; }
     const adapter: GPUAdapter | null = await gpu.requestAdapter();
     if (!adapter) { return null; }

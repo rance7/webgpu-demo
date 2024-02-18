@@ -1,7 +1,7 @@
 import { drawCanvas } from './draw';
 import { Render, WebGPU } from './lib/model.lib';
 import { Target } from './lib/target.lib';
-import { initRender } from '../render';
+import { initRender } from './render';
 import { initWebgpu } from './webgpu';
 
 async function main(): Promise<void> {
@@ -20,5 +20,4 @@ async function main(): Promise<void> {
     drawCanvas(target);
 }
 
-main();
-
+await main();

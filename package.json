@@ -2,7 +2,8 @@
     "author": "Rance",
     "devDependencies": {
         "@ts-all/eslint-config": "^0.1.18",
-        "@types/node": "^20.11.5",
+        "@ts-all/index": "^0.2.10",
+        "@types/node": "^20.11.10",
         "@webgpu/types": "^0.1.40",
         "html-webpack-plugin": "^5.6.0",
         "ts-loader": "^9.5.1",
@@ -12,7 +13,6 @@
         "webpack-dev-server": "^4.15.1"
     },
     "license": "ISC",
-    "main": "app.js",
     "name": "webgpu-startup",
     "scripts": {
         "amend": "git commit --all --amend --no-edit --date=now && git push -f",
