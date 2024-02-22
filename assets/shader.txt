@@ -12,7 +12,7 @@ struct fragment_to_target_struct
 fn vertex_main(@builtin(vertex_index) vertex_index_id : u32)->vertex_to_fragment_struct
 {
 	var vf:vertex_to_fragment_struct;
-	
+
 	switch(vertex_index_id){
 	case 0:
 		{

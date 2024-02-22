@@ -1,28 +1,25 @@
-import { initComponent } from './component';
-import { drawCanvas } from './draw';
-import { Component, Part, Render, WebGPU } from './lib/model.lib';
-import { initPart } from './part';
-import { initRender } from './render';
-import { initWebgpu } from './webgpu';
+import { Component } from './component';
+import { Part } from './part';
+import { Render } from './render';
+import { Target } from './target';
+import { Webgpu } from './webgpu';
 
 async function main(): Promise<void> {
-    const webgpu: WebGPU | null = await initWebgpu();
-    if (!webgpu) {
-        return;
-    }
+    const webgpu: Webgpu = new Webgpu();
+    await webgpu.initWebgpu();
 
-    const render: Render | null = await initRender(webgpu);
-    if (!render) {
-        return;
-    }
+    const render: Render = new Render();
+    await render.initRender(webgpu);
 
-    const part: Part | null = await initPart(render);
-    if (!part) {
-        return;
-    }
-    const component: Component = initComponent(part);
+    const part: Part = new Part();
+    await part.initPart(render);
 
-    drawCanvas(component);
+    const component: Component = new Component();
+    component.initComponent(part);
+
+    const target: Target = new Target();
+    target.initTarget(component);
+    target.drawCanvas();
 }
 
 await main();

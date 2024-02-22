@@ -1,41 +1,61 @@
-/* eslint-disable no-alert */
-import { Component, Render, Target } from './lib/model.lib';
+import { Component } from './component';
+import { initStatus } from './lib/model.lib';
 
-export function initTarget(render: Render, commandEncoder?: GPUCommandEncoder, passEncoder?: GPURenderPassEncoder): Target {
-    return { render, commandEncoder, passEncoder };
-}
+export class Target {
 
-export function beginDraw(target: Target): void {
-    target.commandEncoder = target.render.webgpu.device.createCommandEncoder();
-    target.passEncoder = target.commandEncoder.beginRenderPass(
-        {
-            colorAttachments: [
-                {
-                    view: target.render.webgpu.context.getCurrentTexture().createView(),
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                    loadOp: 'clear',
-                    storeOp: 'store',
-                },
-            ],
-        },
-    );
-}
+    public commandEncoder?: GPUCommandEncoder;
 
-export function doDraw(target: Target, component: Component): void {
-    if (!target.passEncoder) {
-        alert('passEncoder is null');
-        return;
+    public passEncoder?: GPURenderPassEncoder;
+
+    public component?: Component;
+
+    public initTarget(component: Component): initStatus {
+        this.component = component;
+        return initStatus.success;
     }
-    target.passEncoder.setPipeline(component.part.render.pipeline);
-    target.passEncoder.setVertexBuffer(0, component.part.vertexBuffer);
-    target.passEncoder.draw(component.part.vertexNumber);
-}
 
-export function endDraw(target: Target): void {
-    if (!target?.passEncoder || !target.commandEncoder) {
-        alert('passEncoder or commandEncoder is null');
-        return;
+    public beginDraw(): void {
+        if (!this.component?.part?.render?.webgpu?.device || !this.component.part.render.webgpu.canvasContext) {
+            console.error('Exit beginDraw: device or canvasContext undefined');
+            return;
+        }
+        this.commandEncoder = this.component.part.render.webgpu.device.createCommandEncoder();
+        this.passEncoder = this.commandEncoder.beginRenderPass(
+            {
+                colorAttachments: [
+                    {
+                        view: this.component.part.render.webgpu.canvasContext.getCurrentTexture().createView(),
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    },
+                ],
+            },
+        );
     }
-    target.passEncoder.end();
-    target.render.webgpu.device.queue.submit([target.commandEncoder.finish()]);
+
+    public doDraw(): void {
+        if (!this.component || !this.passEncoder) {
+            console.error('Exit doDraw: component or passEncoder undefined');
+            return;
+        }
+        this.component.rotate(this.passEncoder);
+    }
+
+    public endDraw(): void {
+        if (!this.component?.part?.render?.webgpu?.device || !this.passEncoder || !this.commandEncoder) {
+            console.error('Exit doDraw: device, passEncoder or commandEncoder undefined');
+            return;
+        }
+        this.passEncoder.end();
+        this.component.part.render.webgpu.device.queue.submit([this.commandEncoder.finish()]);
+    }
+
+    public drawCanvas(): void {
+        this.beginDraw();
+        this.doDraw();
+        this.endDraw();
+        window.requestAnimationFrame(() => this.drawCanvas());
+    }
+
 }

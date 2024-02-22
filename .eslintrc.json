@@ -4,6 +4,7 @@
     "rules": {
         "unicorn/consistent-destructuring": "off",
         "@typescript-eslint/naming-convention": "off",
-        "prefer-destructuring": "off"
+        "prefer-destructuring": "off",
+        "no-bitwise": "off"
     }
 }
