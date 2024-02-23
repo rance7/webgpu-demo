@@ -1,4 +1,4 @@
 export enum initStatus {
-    fail = 0,
-    success = 1,
+    FAIL = 0,
+    OK = 1,
 }

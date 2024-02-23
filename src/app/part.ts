@@ -4,22 +4,28 @@ import { Render } from './render';
 
 export class Part {
 
-    public vertexNumber: number | undefined;
+    public vertexNumber?: number;
 
-    public vertexBuffer: GPUBuffer | undefined;
+    public vertexBuffer?: GPUBuffer;
 
-    public render: Render | undefined;
+    public render?: Render;
+
+    public texture?: GPUTexture;
+
+    public sampler?: GPUSampler;
+
+    public bindGroup?: GPUBindGroup;
 
     public async initPart(render: Render): Promise<initStatus> {
         this.render = render;
-        if (!this.render?.webgpu?.device) {
-            console.error('Exit initVexBuffer: device undefined');
-            return initStatus.fail;
+        if (!this.render?.webgpu?.device || !this.render.bindGroupLayout) {
+            console.error('Exit initVexBuffer: device or bindGroupLayout undefined');
+            return initStatus.FAIL;
         }
         const vertexData: Array<number> | null = await getVertexData(VERTEX_DATA_PATH);
         if (!vertexData) {
             console.error('Exit initVexBuffer: get vertexData failed');
-            return initStatus.fail;
+            return initStatus.FAIL;
         }
 
         this.vertexNumber = vertexData.length / 8;
@@ -29,7 +35,31 @@ export class Part {
         });
         this.render.webgpu.device.queue.writeBuffer(this.vertexBuffer, 0, new Float32Array(vertexData));
 
-        return initStatus.success;
+        const textureWidth: number = 600;
+        const textureHeight: number = 32;
+        this.texture = this.render.webgpu.device.createTexture({
+            size: { width: textureWidth, height: textureHeight },
+            format: 'rgba16float',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+
+        this.sampler = this.render.webgpu.device.createSampler();
+
+        this.bindGroup = this.render.webgpu.device.createBindGroup(
+            {
+                layout: this.render.bindGroupLayout,
+                entries: [{
+                    binding: 0,
+                    resource: this.texture.createView(),
+                },
+                {
+                    binding: 1,
+                    resource: this.sampler,
+                }],
+            },
+        );
+
+        return initStatus.OK;
     }
 
 }

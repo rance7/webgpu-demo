@@ -11,7 +11,7 @@ export class Target {
 
     public initTarget(component: Component): initStatus {
         this.component = component;
-        return initStatus.success;
+        return initStatus.OK;
     }
 
     public beginDraw(): void {
@@ -39,7 +39,7 @@ export class Target {
             console.error('Exit doDraw: component or passEncoder undefined');
             return;
         }
-        this.component.rotate(this.passEncoder);
+        this.component.draw(this.passEncoder);
     }
 
     public endDraw(): void {

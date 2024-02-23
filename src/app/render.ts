@@ -22,16 +22,18 @@ export class Render {
             {
                 binding: 0,
                 visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-                buffer: {
-                    type: 'uniform',
-                    hasDynamicOffset: false,
-                },
+                texture: {},
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+                sampler: {},
             },
         ];
 
         if (!webgpu.device) {
             console.error('Exit initRender: device undefined');
-            return initStatus.fail;
+            return initStatus.FAIL;
         }
 
         this.bindGroupLayout = webgpu.device.createBindGroupLayout({
@@ -44,13 +46,13 @@ export class Render {
 
         if (!this.webgpu?.device || !this.webgpu.gpu) {
             console.error('Exit initRender: webgpu or gpu undefined');
-            return initStatus.fail;
+            return initStatus.FAIL;
         }
 
         const shaderContent: string | null = await getShader(SHADER_PATH);
         if (!shaderContent) {
             console.error('Exit initRender: get shader content failed');
-            return initStatus.fail;
+            return initStatus.FAIL;
         }
 
         this.shaderModule = this.webgpu.device.createShaderModule({ code: shaderContent });
@@ -89,7 +91,7 @@ export class Render {
                 topology: 'triangle-list',
             },
         });
-        return initStatus.success;
+        return initStatus.OK;
     }
 
 }
