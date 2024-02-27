@@ -1,35 +1,38 @@
+struct component_information
+{
+	rotate_matrix				:	mat4x4<f32>,
+	scale_matrix				:	mat4x4<f32>,
+	location_matrix				:	mat4x4<f32>
+};
 struct vertex_to_fragment_struct
 {
-	@builtin(position)	vertex_position		:	vec4<f32>
+	@builtin(position)	vertex_position		:	vec4<f32>,
+	@location(0)		vertex_texture		:	vec4<f32>
 };
 
 struct fragment_to_target_struct
 {
-	@location(0) 	color	:	vec4<f32>
+	@location(0) 		fragment_color		:	vec4<f32>
 };
 
+@group(0) @binding(0) var<uniform> component_info	:	component_information;
+@group(0) @binding(1) var textur_object				:	texture_2d<f32>;
+@group(0) @binding(2) var texture_sampler			:	sampler;
+
 @vertex
-fn vertex_main(@builtin(vertex_index) vertex_index_id : u32)->vertex_to_fragment_struct
+fn vertex_main(
+		@location(0)	my_coord		:	vec4<f32>,
+		@location(1)	my_texture		:	vec4<f32>
+	)->vertex_to_fragment_struct
 {
 	var vf:vertex_to_fragment_struct;
-
-	switch(vertex_index_id){
-	case 0:
-		{
-			vf.vertex_position=vec4(0.0,0.5,0.0,1.0);
-			break;
-		}
-	case 1:
-		{
-			vf.vertex_position=vec4(-0.5,-0.5,0.0,1.0);
-			break;
-		}
-	default:
-		{
-			vf.vertex_position=vec4(0.5,-0.5,0.0,1.0);
-			break;
-		}
-    }
+	vf.vertex_position	=my_coord;
+	vf.vertex_texture	=my_texture;
+	
+	vf.vertex_position=component_info.rotate_matrix		*vf.vertex_position;
+	vf.vertex_position=component_info.scale_matrix		*vf.vertex_position;
+	vf.vertex_position=component_info.location_matrix	*vf.vertex_position;
+	
 	return vf;
 }
 
@@ -37,6 +40,9 @@ fn vertex_main(@builtin(vertex_index) vertex_index_id : u32)->vertex_to_fragment
 fn fragment_main(vf:vertex_to_fragment_struct) ->fragment_to_target_struct
 {
 	var ft:fragment_to_target_struct;
-	ft.color=vec4(1.0,0.0,0.0,1.0);
+	ft.fragment_color=textureSample(textur_object,texture_sampler,vf.vertex_texture.xy);
+	if(ft.fragment_color.a<0.5)
+		{discard;}
+
 	return ft;
 }

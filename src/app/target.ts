@@ -7,48 +7,78 @@ export class Target {
 
     public passEncoder?: GPURenderPassEncoder;
 
-    public component?: Component;
+    public depthTexture?: GPUTexture;
 
-    public initTarget(component: Component): initStatus {
-        this.component = component;
+    public components?: Array<Component>;
+
+    public initTarget(components: Array<Component>): initStatus {
+        this.components = components;
+        if (!Array.isArray(this.components) || !this.components[0]?.part?.render?.webgpu?.device || !this.components[0].part.render.webgpu.canvasContext) {
+            console.error('Exit doDraw: components, device or canvasContext undefined');
+            return initStatus.FAIL;
+        }
+        const canvasTexture: GPUTexture = this.components[0].part.render.webgpu.canvasContext.getCurrentTexture();
+        this.depthTexture = this.components[0].part.render.webgpu.device.createTexture({
+            size:
+            {
+                width: canvasTexture.width,
+                height: canvasTexture.height,
+            },
+            format: 'depth24plus-stencil8',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
         return initStatus.OK;
     }
 
     public beginDraw(): void {
-        if (!this.component?.part?.render?.webgpu?.device || !this.component.part.render.webgpu.canvasContext) {
-            console.error('Exit beginDraw: device or canvasContext undefined');
+        if (!Array.isArray(this.components) || !this.components[0]?.part?.render?.webgpu?.device || !this.components[0].part.render.webgpu.canvasContext || !this.depthTexture) {
+            console.error('Exit doDraw: device or canvasContext undefined');
             return;
         }
-        this.commandEncoder = this.component.part.render.webgpu.device.createCommandEncoder();
+        this.commandEncoder = this.components[0].part.render.webgpu.device.createCommandEncoder();
         this.passEncoder = this.commandEncoder.beginRenderPass(
             {
                 colorAttachments: [
                     {
-                        view: this.component.part.render.webgpu.canvasContext.getCurrentTexture().createView(),
+                        view: this.components[0].part.render.webgpu.canvasContext.getCurrentTexture().createView(),
                         clearValue: { r: 0, g: 0, b: 0, a: 1 },
                         loadOp: 'clear',
                         storeOp: 'store',
                     },
                 ],
+                depthStencilAttachment:
+                {
+                    view: this.depthTexture.createView(),
+
+                    depthClearValue: 1,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+
+                    stencilClearValue: 0,
+                    stencilLoadOp: 'clear',
+                    stencilStoreOp: 'store',
+                },
             },
         );
     }
 
     public doDraw(): void {
-        if (!this.component || !this.passEncoder) {
-            console.error('Exit doDraw: component or passEncoder undefined');
+        if (!Array.isArray(this.components) || !this.passEncoder) {
+            console.error('Exit doDraw: passEncoder undefined');
             return;
         }
-        this.component.draw(this.passEncoder);
+        for (const component of this.components) {
+            component.draw(this.passEncoder);
+        }
     }
 
     public endDraw(): void {
-        if (!this.component?.part?.render?.webgpu?.device || !this.passEncoder || !this.commandEncoder) {
+        if (!Array.isArray(this.components) || !this.components[0]?.part?.render?.webgpu?.device || !this.passEncoder || !this.commandEncoder) {
             console.error('Exit doDraw: device, passEncoder or commandEncoder undefined');
             return;
         }
         this.passEncoder.end();
-        this.component.part.render.webgpu.device.queue.submit([this.commandEncoder.finish()]);
+        this.components[0].part.render.webgpu.device.queue.submit([this.commandEncoder.finish()]);
     }
 
     public drawCanvas(): void {
