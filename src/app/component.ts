@@ -1,5 +1,5 @@
 import { getTextureBlob } from './lib';
-import { initStatus } from './lib/model.lib';
+import { ComponentParameter, initStatus } from './lib/model.lib';
 import { Part } from './part';
 
 export class Component {
@@ -18,28 +18,34 @@ export class Component {
 
     public context2d?: CanvasRenderingContext2D;
 
-    public async initComponent(part: Part): Promise<initStatus> {
+    public componentParameter?: ComponentParameter;
+
+    public async initComponent(part: Part, componentParameter: ComponentParameter): Promise<initStatus> {
         this.part = part;
-        if (!this.part?.render?.webgpu?.device || !this.part.render.bindGroupLayout || !this.part.parameter) {
-            console.error('Exit constructComponet: device undefined');
+        this.componentParameter = componentParameter;
+        if (!this.part?.render?.webgpu?.device || !this.part.render.bindGroupLayout) {
+            console.error('Exit initComponent: device undefined');
             return initStatus.FAIL;
         }
 
         this.uniformBuffer = this.part.render.webgpu.device.createBuffer({
-            size: Float32Array.BYTES_PER_ELEMENT * 16 * 3,
+            size: Float32Array.BYTES_PER_ELEMENT * ((16 * 3) + 4),
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         });
 
         this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
             , Float32Array.BYTES_PER_ELEMENT * 16 * 1
-            , new Float32Array(this.part.parameter.ScaleMatrix));
+            , new Float32Array(componentParameter.ScaleMatrix));
         this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
             , Float32Array.BYTES_PER_ELEMENT * 16 * 2
-            , new Float32Array(this.part.parameter.LocationMatrix));
+            , new Float32Array(componentParameter.LocationMatrix));
+        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
+            , Float32Array.BYTES_PER_ELEMENT * 16 * 3
+            , new Float32Array([componentParameter.Width, componentParameter.Height, 1, 1]));
 
-        const textureBlob: ImageBitmapSource | null = await getTextureBlob(this.part.parameter.TextureUrl);
+        const textureBlob: ImageBitmapSource | null = await getTextureBlob(componentParameter.TextureUrl);
         if (!textureBlob) {
-            console.error('Exit draw: textureBlob undefined');
+            console.error('Exit initComponent: textureBlob undefined');
             return initStatus.FAIL;
         }
         const textureImageBitMap: ImageBitmap = await createImageBitmap(textureBlob, {
@@ -98,8 +104,8 @@ export class Component {
     }
 
     public draw(passEncoder: GPURenderPassEncoder): void {
-        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.part.vertexBuffer || !this.part.vertexNumber) {
-            console.error('Exit constructComponet: device, uniformBuffer, bindGroup, pipeline, vertexBuffer or vertexNumber undefined');
+        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.componentParameter) {
+            console.error('Exit draw: device, uniformBuffer, bindGroup, componentParameter or pipeline undefined');
             return;
         }
         const timeCycle: number = 10000;
@@ -118,9 +124,8 @@ export class Component {
         ));
 
         passEncoder.setPipeline(this.part.render.pipeline);
-        passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
-        passEncoder.draw(this.part.vertexNumber);
+        passEncoder.draw(this.componentParameter.Width * 6, this.componentParameter.Height);
     }
 
     public drawCanvas2d(passEncoder: GPURenderPassEncoder): void {

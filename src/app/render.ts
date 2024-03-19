@@ -1,10 +1,10 @@
-import { getShaderContent } from './lib';
+import { SHADER_PATH, getShaderContent } from './lib';
 import { initStatus } from './lib/model.lib';
 import { Webgpu } from './webgpu';
 
 export class Render {
 
-    public bindGroupLayoutEntries!: Array<GPUBindGroupLayoutEntry>;
+    public bindGroupLayoutEntries?: Array<GPUBindGroupLayoutEntry>;
 
     public bindGroupLayout?: GPUBindGroupLayout;
 
@@ -23,11 +23,7 @@ export class Render {
             {
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer:
-                {
-                    type: 'uniform',
-                    hasDynamicOffset: false,
-                },
+                buffer: {},
             },
 
             // texture
@@ -58,7 +54,7 @@ export class Render {
             bindGroupLayouts: [this.bindGroupLayout],
         });
 
-        const shaderContent: string | null = await getShaderContent('./assets/shader.txt');
+        const shaderContent: string | null = await getShaderContent(SHADER_PATH);
         if (!shaderContent) {
             console.error('Exit initRender: get shader content failed');
             return initStatus.FAIL;
@@ -71,21 +67,7 @@ export class Render {
             vertex: {
                 module: this.shaderModule,
                 entryPoint: 'vertex_main',
-                buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
-                    stepMode: 'vertex',
-                    attributes: [{
-                        // vertex
-                        format: 'float32x4',
-                        offset: 0,
-                        shaderLocation: 0,
-                    }, {
-                        // texture
-                        format: 'float32x4',
-                        offset: Float32Array.BYTES_PER_ELEMENT * 4,
-                        shaderLocation: 1,
-                    }],
-                }],
+                buffers: [],
             },
             fragment: {
                 module: this.shaderModule,

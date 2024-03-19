@@ -3,9 +3,10 @@ export enum initStatus {
     OK = 1,
 }
 
-export interface PartParameter {
+export interface ComponentParameter {
+    Width: number;
+    Height: number;
     TextureUrl: string;
-    VertexDataUrl: string;
     ScaleMatrix: Array<number>;
     LocationMatrix: Array<number>;
 }

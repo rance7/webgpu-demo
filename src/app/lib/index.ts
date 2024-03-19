@@ -1,6 +1,8 @@
-type Nullable<T> = T | null;
-
 export const CANVAS_ID: string = '#my_canvas';
+
+export const SHADER_PATH: string = './assets/shader.wgsl';
+
+export type Nullable<T> = T | null;
 
 export function convertNullToUndefined<T>(value: Nullable<T>): T | undefined {
     return value as T | undefined;

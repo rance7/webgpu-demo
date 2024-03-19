@@ -1,5 +1,5 @@
 import { Component } from './component';
-import { PartParameter } from './lib/model.lib';
+import { ComponentParameter } from './lib/model.lib';
 import { Part } from './part';
 import { Render } from './render';
 import { Target } from './target';
@@ -20,16 +20,10 @@ async function main(): Promise<void> {
         0, 0, 0.5, 1,
     ];
 
-    const trunkPartParameter: PartParameter = {
-        TextureUrl: './assets/trunk.jpg',
-        VertexDataUrl: './assets/trunk_vertex_data.txt',
-        ScaleMatrix: scaleMatrix,
-        LocationMatrix: locationMatrix,
-    };
-
-    const crownPartParameter: PartParameter = {
-        TextureUrl: './assets/crown.png',
-        VertexDataUrl: './assets/crown_vertex_data.txt',
+    const earthComponentParameter: ComponentParameter = {
+        Width: 300,
+        Height: 300,
+        TextureUrl: './assets/earth.png',
         ScaleMatrix: scaleMatrix,
         LocationMatrix: locationMatrix,
     };
@@ -40,19 +34,13 @@ async function main(): Promise<void> {
     const render: Render = new Render();
     await render.initRender(webgpu);
 
-    const trunkPart: Part = new Part();
-    await trunkPart.initPart(render, trunkPartParameter);
-
-    const crownPart: Part = new Part();
-    await crownPart.initPart(render, crownPartParameter);
+    const earthPart: Part = new Part();
+    earthPart.initPart(render);
 
     const components: Array<Component> = new Array<Component>();
-    const trunkComponent: Component = new Component();
-    await trunkComponent.initComponent(trunkPart);
-    const crownComponent: Component = new Component();
-    await crownComponent.initComponent(crownPart);
-    components.push(trunkComponent);
-    components.push(crownComponent);
+    const earthComponent: Component = new Component();
+    await earthComponent.initComponent(earthPart, earthComponentParameter);
+    components.push(earthComponent);
 
     const target: Target = new Target();
     target.initTarget(components);
