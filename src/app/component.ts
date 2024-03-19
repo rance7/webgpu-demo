@@ -1,5 +1,5 @@
 import { getTextureBlob } from './lib';
-import { ComponentParameter, initStatus } from './lib/model.lib';
+import { WaveParams, initStatus } from './lib/model.lib';
 import { Part } from './part';
 
 export class Component {
@@ -18,32 +18,22 @@ export class Component {
 
     public context2d?: CanvasRenderingContext2D;
 
-    public componentParameter?: ComponentParameter;
+    public componentParams?: WaveParams;
 
-    public async initComponent(part: Part, componentParameter: ComponentParameter): Promise<initStatus> {
+    public async initComponent(part: Part, componentParams: WaveParams): Promise<initStatus> {
         this.part = part;
-        this.componentParameter = componentParameter;
+        this.componentParams = componentParams;
         if (!this.part?.render?.webgpu?.device || !this.part.render.bindGroupLayout) {
             console.error('Exit initComponent: device undefined');
             return initStatus.FAIL;
         }
 
         this.uniformBuffer = this.part.render.webgpu.device.createBuffer({
-            size: Float32Array.BYTES_PER_ELEMENT * ((16 * 3) + 4),
+            size: Float32Array.BYTES_PER_ELEMENT * (8 + 16),
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         });
 
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
-            , Float32Array.BYTES_PER_ELEMENT * 16 * 1
-            , new Float32Array(componentParameter.ScaleMatrix));
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
-            , Float32Array.BYTES_PER_ELEMENT * 16 * 2
-            , new Float32Array(componentParameter.LocationMatrix));
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer
-            , Float32Array.BYTES_PER_ELEMENT * 16 * 3
-            , new Float32Array([componentParameter.Width, componentParameter.Height, 1, 1]));
-
-        const textureBlob: ImageBitmapSource | null = await getTextureBlob(componentParameter.TextureUrl);
+        const textureBlob: ImageBitmapSource | null = await getTextureBlob(componentParams.TextureUrl);
         if (!textureBlob) {
             console.error('Exit initComponent: textureBlob undefined');
             return initStatus.FAIL;
@@ -104,8 +94,37 @@ export class Component {
     }
 
     public draw(passEncoder: GPURenderPassEncoder): void {
-        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.componentParameter) {
-            console.error('Exit draw: device, uniformBuffer, bindGroup, componentParameter or pipeline undefined');
+        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.componentParams) {
+            console.error('Exit draw: device, uniformBuffer, bindGroup, componentParams or pipeline undefined');
+            return;
+        }
+        const timeCycle: number = 10000;
+        // eslint-disable-next-line id-length
+        const p: number = 2 * Math.PI * (Date.now() % timeCycle) / timeCycle;
+
+        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array(
+            [
+                this.componentParams.Width,
+                this.componentParams.Height,
+                this.componentParams.WaveNumber,
+                2 * p,
+                this.componentParams.WaveAmplitude,
+                0, 0, 0,
+                1, 0, 0, 0,
+                0, Math.cos(Math.PI / 4), Math.sin(Math.PI / 4), 0,
+                0, -Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0,
+                0, 0, 0.5, 1,
+            ],
+        ));
+
+        passEncoder.setPipeline(this.part.render.pipeline);
+        passEncoder.setBindGroup(0, this.bindGroup);
+        passEncoder.draw(this.componentParams.Width * 6, this.componentParams.Height);
+    }
+
+    public rotate(passEncoder: GPURenderPassEncoder): void {
+        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.componentParams) {
+            console.error('Exit draw: device, uniformBuffer, bindGroup, componentParams or pipeline undefined');
             return;
         }
         const timeCycle: number = 10000;
@@ -125,7 +144,7 @@ export class Component {
 
         passEncoder.setPipeline(this.part.render.pipeline);
         passEncoder.setBindGroup(0, this.bindGroup);
-        passEncoder.draw(this.componentParameter.Width * 6, this.componentParameter.Height);
+        passEncoder.draw(this.componentParams.Width * 6, this.componentParams.Height);
     }
 
     public drawCanvas2d(passEncoder: GPURenderPassEncoder): void {
