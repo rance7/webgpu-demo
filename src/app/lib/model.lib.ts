@@ -13,13 +13,10 @@ export interface ComponentParams {
     TextureUrl: string;
 }
 
-export interface WaveParams {
-    Width: number;
-    Height: number;
-    WaveNumber: number;
-    TimeCycle: number;
-    WaveAmplitude: number;
-    TextureUrl: string;
+export interface RenderParams {
+    ArrayStride: number;
+    PositionOffset: number;
+    UVOffset: number;
 }
 
 export interface Mesh {

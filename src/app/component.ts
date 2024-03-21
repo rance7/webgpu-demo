@@ -3,12 +3,14 @@ import { vec3 } from 'wgpu-matrix';
 import { getTextureBlob } from './lib';
 import { ArcballCamera, CameraParams, Cameras, WASDCamera, getModelViewProjectionMatrix } from './lib/camera';
 import { InputHandler, createInputHandler } from './lib/input-handler';
-import { ComponentParams, WaveParams, initStatus } from './lib/model.lib';
+import { ComponentParams, initStatus } from './lib/model.lib';
 import { Part } from './part';
 
 export class Component {
 
     public part?: Part;
+
+    public componentParams?: ComponentParams;
 
     public uniformBuffer?: GPUBuffer;
 
@@ -18,14 +20,6 @@ export class Component {
 
     public bindGroup?: GPUBindGroup;
 
-    public canvas2d?: HTMLCanvasElement;
-
-    public context2d?: CanvasRenderingContext2D;
-
-    public componentParams?: ComponentParams;
-
-    public waveParams?: WaveParams;
-
     public cameras!: Cameras;
 
     public cameraParams!: CameraParams;
@@ -33,6 +27,10 @@ export class Component {
     public lastFrameMS!: number;
 
     public inputHandler?: InputHandler;
+
+    public canvas2d?: HTMLCanvasElement;
+
+    public context2d?: CanvasRenderingContext2D;
 
     public async initComponent(part: Part, componentParams: ComponentParams): Promise<this> {
         this.part = part;
@@ -186,40 +184,6 @@ export class Component {
         passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.draw(this.part.vertexNumber);
-    }
-
-    public wave(passEncoder: GPURenderPassEncoder): void {
-        if (!this.bindGroup || !this.part?.render?.pipeline) {
-            console.error('Exit camera: bindGroup or pipeline undefined');
-            return;
-        }
-
-        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.waveParams) {
-            console.error('Exit draw: device, uniformBuffer, bindGroup, waveParams or pipeline undefined');
-            return;
-        }
-
-        const timeCycle: number = 10000;
-        const p: number = 2 * Math.PI * (Date.now() % timeCycle) / timeCycle;
-
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer, 0, new Float32Array(
-            [
-                this.waveParams.Width,
-                this.waveParams.Height,
-                this.waveParams.WaveNumber,
-                2 * p,
-                this.waveParams.WaveAmplitude,
-                0, 0, 0,
-                1, 0, 0, 0,
-                0, Math.cos(Math.PI / 4), Math.sin(Math.PI / 4), 0,
-                0, -Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0,
-                0, 0, 0.5, 1,
-            ],
-        ));
-
-        passEncoder.setPipeline(this.part.render.pipeline);
-        passEncoder.setBindGroup(0, this.bindGroup);
-        passEncoder.draw(this.waveParams.Width * 6, this.waveParams.Height);
     }
 
     public drawCanvas2d(passEncoder: GPURenderPassEncoder): void {

@@ -1,4 +1,5 @@
 import { SHADER_PATH, getFileContent } from './lib';
+import { RenderParams } from './lib/model.lib';
 import { Webgpu } from './webgpu';
 
 export class Render {
@@ -13,10 +14,13 @@ export class Render {
 
     public shaderModule?: GPUShaderModule;
 
+    public renderParams!: RenderParams;
+
     public webgpu?: Webgpu;
 
-    public async initRender(webgpu: Webgpu): Promise<this> {
+    public async initRender(webgpu: Webgpu, renderParams: RenderParams): Promise<this> {
         this.webgpu = webgpu;
+        this.renderParams = renderParams;
         if (!this.webgpu.device || !this.webgpu.gpu) {
             console.error('Exit initRender: device or gpu undefined');
             return this;
@@ -35,19 +39,19 @@ export class Render {
             vertex: {
                 module: this.shaderModule,
                 buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * 10,
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.ArrayStride,
                     attributes:
                         [
                             {
-                                // texture
+                                // position
                                 format: 'float32x4',
-                                offset: 0,
+                                offset: renderParams.PositionOffset,
                                 shaderLocation: 0,
                             },
                             {
-                                // coord
+                                // uv
                                 format: 'float32x2',
-                                offset: Float32Array.BYTES_PER_ELEMENT * 8,
+                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.UVOffset,
                                 shaderLocation: 1,
                             },
                         ],
