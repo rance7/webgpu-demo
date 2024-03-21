@@ -1,23 +1,23 @@
-export const CANVAS_ID: string = '#my_canvas';
+import { Nullable } from './model.lib';
 
 export const SHADER_PATH: string = './assets/shader.wgsl';
 
-export type Nullable<T> = T | null;
+export const CANVAS_ID: string = '#my_canvas';
 
 export function convertNullToUndefined<T>(value: Nullable<T>): T | undefined {
     return value as T | undefined;
 }
 
-export async function getShaderContent(path: string): Promise<string | null> {
+export async function getFileContent(path: string): Promise<string | null> {
     try {
         const res: Response = await fetch(path, { cache: 'no-cache' });
         if (!res.ok) {
-            console.error(`Fail to get shader content:${path}, status:${res.status}`);
+            console.error(`Fail to get file content:${path}, status:${res.status}`);
             return null;
         }
         return await res.text();
     } catch (error) {
-        console.error(`Error occurred when fetching shader file:`, error);
+        console.error(`Error occurred when fetching file:`, error);
     }
     return null;
 }

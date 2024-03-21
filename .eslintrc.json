@@ -5,6 +5,11 @@
         "unicorn/consistent-destructuring": "off",
         "@typescript-eslint/naming-convention": "off",
         "prefer-destructuring": "off",
-        "no-bitwise": "off"
+        "no-bitwise": "off",
+        "id-length": "off",
+        "@typescript-eslint/typedef": "off",
+        "no-underscore-dangle": "off",
+        "@typescript-eslint/member-ordering": "off",
+        "unicorn/no-zero-fractions": "off"
     }
 }

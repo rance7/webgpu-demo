@@ -68,7 +68,8 @@ export class Target {
             return;
         }
         for (const component of this.components) {
-            component.draw(this.passEncoder);
+            const lastFrameMS = Date.now();
+            component.draw(this.passEncoder, lastFrameMS);
         }
     }
 
