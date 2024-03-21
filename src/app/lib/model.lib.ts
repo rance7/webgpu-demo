@@ -11,8 +11,6 @@ export interface PartParams {
 
 export interface ComponentParams {
     TextureUrl: string;
-    ScaleMatrix: Array<number>;
-    LocationMatrix: Array<number>;
 }
 
 export interface WaveParams {

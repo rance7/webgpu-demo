@@ -1,5 +1,4 @@
 import { SHADER_PATH, getFileContent } from './lib';
-import { initStatus } from './lib/model.lib';
 import { Webgpu } from './webgpu';
 
 export class Render {
@@ -16,75 +15,39 @@ export class Render {
 
     public webgpu?: Webgpu;
 
-    public async initRender(webgpu: Webgpu): Promise<initStatus> {
+    public async initRender(webgpu: Webgpu): Promise<this> {
         this.webgpu = webgpu;
-        this.bindGroupLayoutEntries = [
-            // component_information
-            {
-                binding: 0,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: {
-                    type: 'uniform',
-                    hasDynamicOffset: false,
-                },
-            },
-
-            // texture
-            {
-                binding: 1,
-                visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-                texture: {},
-            },
-
-            // sampler
-            {
-                binding: 2,
-                visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-                sampler: {},
-            },
-        ];
-
         if (!this.webgpu.device || !this.webgpu.gpu) {
             console.error('Exit initRender: device or gpu undefined');
-            return initStatus.FAIL;
+            return this;
         }
-
-        this.bindGroupLayout = this.webgpu.device.createBindGroupLayout({
-            entries: this.bindGroupLayoutEntries,
-        });
-
-        this.pipelineLayout = this.webgpu.device.createPipelineLayout({
-            bindGroupLayouts: [this.bindGroupLayout],
-        });
 
         const shaderContent: string | null = await getFileContent(SHADER_PATH);
         if (!shaderContent) {
             console.error('Exit initRender: get shader content failed');
-            return initStatus.FAIL;
+            return this;
         }
 
         this.shaderModule = this.webgpu.device.createShaderModule({ code: shaderContent });
 
         this.pipeline = this.webgpu.device.createRenderPipeline({
-            layout: this.pipelineLayout,
+            layout: 'auto',
             vertex: {
                 module: this.shaderModule,
-                entryPoint: 'vertex_main',
                 buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * 8,
-                    stepMode: 'vertex',
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * 10,
                     attributes:
                         [
                             {
-                                // vertex
+                                // texture
                                 format: 'float32x4',
                                 offset: 0,
                                 shaderLocation: 0,
                             },
                             {
-                                // texture
-                                format: 'float32x4',
-                                offset: Float32Array.BYTES_PER_ELEMENT * 4,
+                                // coord
+                                format: 'float32x2',
+                                offset: Float32Array.BYTES_PER_ELEMENT * 8,
                                 shaderLocation: 1,
                             },
                         ],
@@ -92,7 +55,6 @@ export class Render {
             },
             fragment: {
                 module: this.shaderModule,
-                entryPoint: 'fragment_main',
                 targets: [
                     {
                         format: this.webgpu.gpu.getPreferredCanvasFormat(),
@@ -101,6 +63,7 @@ export class Render {
             },
             primitive: {
                 topology: 'triangle-list',
+                cullMode: 'back',
             },
             depthStencil: {
                 format: 'depth24plus-stencil8',
@@ -112,7 +75,7 @@ export class Render {
                 stencilWriteMask: 0x01,
             },
         });
-        return initStatus.OK;
+        return this;
     }
 
 }

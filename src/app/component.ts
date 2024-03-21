@@ -2,7 +2,7 @@ import { GUI } from 'dat.gui';
 import { vec3 } from 'wgpu-matrix';
 import { getTextureBlob } from './lib';
 import { ArcballCamera, CameraParams, Cameras, WASDCamera, getModelViewProjectionMatrix } from './lib/camera';
-import { InputHandler, createInputHandler } from './lib/controller';
+import { InputHandler, createInputHandler } from './lib/input-handler';
 import { ComponentParams, WaveParams, initStatus } from './lib/model.lib';
 import { Part } from './part';
 
@@ -30,9 +30,11 @@ export class Component {
 
     public cameraParams!: CameraParams;
 
+    public lastFrameMS!: number;
+
     public inputHandler?: InputHandler;
 
-    public async initComponent(part: Part, componentParams: ComponentParams): Promise<initStatus> {
+    public async initComponent(part: Part, componentParams: ComponentParams): Promise<this> {
         this.part = part;
         this.componentParams = componentParams;
         this.cameras = {
@@ -40,36 +42,29 @@ export class Component {
             WASD: new WASDCamera({ position: vec3.create(3, 2, 5) }),
         };
         this.cameraParams = { type: 'arcball' };
+        this.lastFrameMS = Date.now();
 
-        if (!this.part?.render?.webgpu?.device || !this.part.render.bindGroupLayout || !this.part.render.webgpu.canvas) {
-            console.error('Exit initComponent: device, bindGroupLayout, canvas undefined');
-            return initStatus.FAIL;
+        if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline) {
+            console.error('Exit initComponent: device, canvas or bindGroupLayout undefined');
+            return this;
         }
 
         this.inputHandler = createInputHandler(window, this.part.render.webgpu.canvas);
 
         this.uniformBuffer = this.part.render.webgpu.device.createBuffer({
-            size: Float32Array.BYTES_PER_ELEMENT * 16 * 3,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+            size: Float32Array.BYTES_PER_ELEMENT * 16,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
-
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer,
-            Float32Array.BYTES_PER_ELEMENT * 16 * 1,
-            new Float32Array(componentParams.ScaleMatrix));
-
-        this.part.render.webgpu.device.queue.writeBuffer(this.uniformBuffer,
-            Float32Array.BYTES_PER_ELEMENT * 16 * 2,
-            new Float32Array(componentParams.LocationMatrix));
 
         const textureBlob: ImageBitmapSource | null = await getTextureBlob(componentParams.TextureUrl);
         if (!textureBlob) {
             console.error('Exit initComponent: textureBlob undefined');
-            return initStatus.FAIL;
+            return this;
         }
+
         const textureImageBitMap: ImageBitmap = await createImageBitmap(textureBlob, {
             imageOrientation: 'flipY',
         });
-
         this.texture = this.part.render.webgpu.device.createTexture({
             size:
             {
@@ -95,15 +90,17 @@ export class Component {
             },
         );
 
-        this.sampler = this.part.render.webgpu.device.createSampler();
+        this.sampler = this.part.render.webgpu.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+        });
 
         this.bindGroup = this.part.render.webgpu.device.createBindGroup({
-            layout: this.part.render.bindGroupLayout,
+            layout: this.part.render.pipeline.getBindGroupLayout(0),
             entries: [
                 {
                     binding: 0,
-                    resource:
-                    {
+                    resource: {
                         buffer: this.uniformBuffer,
                     },
                 },
@@ -126,19 +123,23 @@ export class Component {
             oldCameraType = newCameraType;
         });
 
-        return initStatus.OK;
+        return this;
     }
 
-    public draw(passEncoder: GPURenderPassEncoder, lastFrameMS: number): void {
-        if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer || !this.uniformBuffer || !this.part?.render?.webgpu?.canvas || !this.inputHandler) {
-            console.error('Exit camera: canvas or inputHandler undefined');
-            return;
+    public draw(passEncoder: GPURenderPassEncoder): initStatus {
+        if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
+            console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
+            return initStatus.FAIL;
+        }
+
+        if (!this.uniformBuffer || !this.part.render.webgpu?.canvas || !this.inputHandler) {
+            console.error('Exit camera: uniformBuffer , canvas or inputHandler undefined');
+            return initStatus.FAIL;
         }
 
         const now = Date.now();
-        const deltaTime = (now - lastFrameMS) / 1000;
-        // eslint-disable-next-line no-param-reassign
-        lastFrameMS = now;
+        const deltaTime = (now - this.lastFrameMS) / 1000;
+        this.lastFrameMS = now;
         const aspect = this.part?.render?.webgpu?.canvas.width / this.part?.render?.webgpu?.canvas.height;
         const modelViewProjection = getModelViewProjectionMatrix(deltaTime, this.cameras[this.cameraParams.type], this.inputHandler, aspect);
 
@@ -154,11 +155,17 @@ export class Component {
         passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.draw(this.part.vertexNumber);
+        return initStatus.OK;
     }
 
     public rotate(passEncoder: GPURenderPassEncoder): void {
-        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
-            console.error('Exit draw: device, uniformBuffer, bindGroup, vertexNumber, vertexBuffer or pipeline undefined');
+        if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
+            console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
+            return;
+        }
+
+        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer) {
+            console.error('Exit draw: device or uniformBuffer undefined');
             return;
         }
 
@@ -182,7 +189,12 @@ export class Component {
     }
 
     public wave(passEncoder: GPURenderPassEncoder): void {
-        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.bindGroup || !this.part.render.pipeline || !this.waveParams) {
+        if (!this.bindGroup || !this.part?.render?.pipeline) {
+            console.error('Exit camera: bindGroup or pipeline undefined');
+            return;
+        }
+
+        if (!this.part?.render?.webgpu?.device || !this.uniformBuffer || !this.waveParams) {
             console.error('Exit draw: device, uniformBuffer, bindGroup, waveParams or pipeline undefined');
             return;
         }
@@ -211,14 +223,16 @@ export class Component {
     }
 
     public drawCanvas2d(passEncoder: GPURenderPassEncoder): void {
+        if (!this.part?.render?.pipeline || !this.part.vertexBuffer || !this.part.vertexNumber || !this.bindGroup) {
+            console.error('Exit draw: pipeline, vertexBuffer, bindGroup or vertexNumber undefined');
+            return;
+        }
+
         if (!this.context2d || !this.canvas2d || !this.part?.render?.webgpu?.device || !this.texture) {
             console.error('Exit draw: context2d, device or texture undefined');
             return;
         }
-        if (!this.part.render.pipeline || !this.part.vertexBuffer || !this.part.vertexNumber || !this.bindGroup) {
-            console.error('Exit draw: pipeline, vertexBuffer, bindGroup or vertexNumber undefined');
-            return;
-        }
+
         this.context2d.fillStyle = 'rgb(125, 125, 125)';
         this.context2d.fillRect(0, 0, this.canvas2d.width, this.canvas2d.height);
         this.context2d.fillStyle = 'rgb(255,0,0)';

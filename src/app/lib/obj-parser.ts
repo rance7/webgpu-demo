@@ -71,7 +71,6 @@ export class ObjParser {
                 const indices: Array<string> = face.split('/');
                 const v: Vec3 = this.v[Number(indices[0]).valueOf() - 1];
                 const vt: Vec2 = this.vt[Number(indices[1]).valueOf() - 1];
-                // eslint-disable-next-line unicorn/no-zero-fractions
                 result.push(...v, ...vt);
             }
         }

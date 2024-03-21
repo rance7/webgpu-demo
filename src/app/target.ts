@@ -11,11 +11,11 @@ export class Target {
 
     public components?: Array<Component>;
 
-    public initTarget(components: Array<Component>): initStatus {
+    public initTarget(components: Array<Component>): this {
         this.components = components;
         if (!Array.isArray(this.components) || !this.components[0]?.part?.render?.webgpu?.device || !this.components[0].part.render.webgpu.canvasContext) {
             console.error('Exit doDraw: components, device or canvasContext undefined');
-            return initStatus.FAIL;
+            return this;
         }
         const canvasTexture: GPUTexture = this.components[0].part.render.webgpu.canvasContext.getCurrentTexture();
         this.depthTexture = this.components[0].part.render.webgpu.device.createTexture({
@@ -27,7 +27,7 @@ export class Target {
             format: 'depth24plus-stencil8',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        return initStatus.OK;
+        return this;
     }
 
     public beginDraw(): void {
@@ -62,15 +62,16 @@ export class Target {
         );
     }
 
-    public doDraw(): void {
+    public doDraw(): boolean {
         if (!Array.isArray(this.components) || !this.passEncoder) {
             console.error('Exit doDraw: passEncoder undefined');
-            return;
+            return false;
         }
         for (const component of this.components) {
-            const lastFrameMS = Date.now();
-            component.draw(this.passEncoder, lastFrameMS);
+            const flag = component.draw(this.passEncoder);
+            if (flag == initStatus.FAIL) { return false; }
         }
+        return true;
     }
 
     public endDraw(): void {
@@ -84,8 +85,11 @@ export class Target {
 
     public drawCanvas(): void {
         this.beginDraw();
-        this.doDraw();
+        const flag = this.doDraw();
         this.endDraw();
+        if (!flag) {
+            return;
+        }
         window.requestAnimationFrame(() => this.drawCanvas());
     }
 

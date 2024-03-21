@@ -1,5 +1,5 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import Controller, { InputHandler } from './controller';
+import Controller, { InputHandler } from './input-handler';
 
 // Returns `x` clamped between [`min` .. `max`]
 function clamp(x: number, min: number, max: number): number {
