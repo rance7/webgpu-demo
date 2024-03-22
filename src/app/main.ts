@@ -7,11 +7,11 @@ import { Webgpu } from './webgpu';
 
 async function main(): Promise<void> {
     const componentParams: ComponentParams = {
-        TextureUrl: './assets/pistol/20110804045230203640.jpg',
+        TextureUrl: './assets/dragon.jpg',
     };
 
     const partParams: PartParams = {
-        VertexDataUrl: './assets/pistol/part.obj',
+        VertexDataUrl: './assets/dragon.obj',
     };
 
     const renderParams: RenderParams = {
