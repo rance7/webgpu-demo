@@ -115,11 +115,19 @@ export class Component {
 
         let oldCameraType = this.cameraParams.type;
         const gui: GUI = new GUI();
+        gui.domElement.id = 'gui';
         gui.add(this.cameraParams, 'type', ['arcball', 'WASD']).onChange(() => {
             const newCameraType = this.cameraParams.type;
             this.cameras[newCameraType].matrix = this.cameras[oldCameraType].matrix;
             oldCameraType = newCameraType;
         });
+
+        const canvasContainer = document.querySelector('.container');
+        if (!canvasContainer) {
+            console.error('Fail to get canvas container');
+            return this;
+        }
+        canvasContainer.append(gui.domElement);
 
         return this;
     }

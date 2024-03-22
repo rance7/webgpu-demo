@@ -1,14 +1,14 @@
 import * as path from 'node:path';
 import * as url from 'node:url';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-// import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
 const config = {
     mode: 'development',
     target: 'web',
     entry: [
         './src/app/main.ts',
-        // './src/styles/style.scss',
+        './src/index.scss',
     ],
     devServer: {
         static: {
@@ -26,10 +26,10 @@ const config = {
                 use: 'ts-loader',
                 exclude: /node_modules/u,
             },
-            // {
-            //     test: /.scss$/ui,
-            //     use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
-            // },
+            {
+                test: /.scss$/ui,
+                use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+            },
         ],
     },
     resolve: {
@@ -42,9 +42,9 @@ const config = {
         path: path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), 'dist'),
     },
     plugins: [
-        // new MiniCssExtractPlugin({
-        //     filename: 'bundle.[contenthash].css',
-        // }),
+        new MiniCssExtractPlugin({
+            filename: 'bundle.[contenthash].css',
+        }),
         new HtmlWebpackPlugin({
             template: 'src/index.html',
         }),
