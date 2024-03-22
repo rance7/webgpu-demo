@@ -1,5 +1,5 @@
-import { getVertexData } from './lib';
 import { PartParams } from './lib/model.lib';
+import { ObjParser } from './lib/obj-parser';
 import { Render } from './render';
 
 export class Part {
@@ -17,9 +17,9 @@ export class Part {
             return this;
         }
 
-        // const vertexData: Float32Array = await new ObjParser().parseObj2Vertices(partParams.VertexDataUrl);
+        // const vertexData: Array<number> | null = await getVertexData(partParams.VertexDataUrl);
 
-        const vertexData: Array<number> | null = await getVertexData(partParams.VertexDataUrl);
+        const vertexData: Float32Array = await new ObjParser().parseObj2Vertices(partParams.VertexDataUrl);
         // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         if (!vertexData) {
             console.error('Exit initPart: vertexData undefined');

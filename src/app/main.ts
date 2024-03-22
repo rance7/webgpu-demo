@@ -11,13 +11,13 @@ async function main(): Promise<void> {
     };
 
     const partParams: PartParams = {
-        VertexDataUrl: './assets/cube.json',
+        VertexDataUrl: './assets/pistol/part.obj',
     };
 
     const renderParams: RenderParams = {
-        ArrayStride: 10,
+        ArrayStride: 6,
         PositionOffset: 0,
-        UVOffset: 8,
+        UVOffset: 4,
     };
 
     const part: Part = new Part();

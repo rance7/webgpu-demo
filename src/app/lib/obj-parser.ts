@@ -71,7 +71,7 @@ export class ObjParser {
                 const indices: Array<string> = face.split('/');
                 const v: Vec3 = this.v[Number(indices[0]).valueOf() - 1];
                 const vt: Vec2 = this.vt[Number(indices[1]).valueOf() - 1];
-                result.push(...v, ...vt);
+                result.push(...v, 1, ...vt);
             }
         }
         return new Float32Array(result);
