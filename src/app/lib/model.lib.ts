@@ -1,16 +1,15 @@
+import { Vec3 } from 'wgpu-matrix';
+
 export type Nullable<T> = T | null;
 
-export enum initStatus {
+export enum InitStatus {
     FAIL = 0,
     OK = 1,
 }
 
-export interface PartParams {
-    VertexDataUrl: string;
-}
-
-export interface ComponentParams {
-    TextureUrl: string;
+export interface Vertices {
+    TextureImgName: string | undefined;
+    Vertex: Float32Array;
 }
 
 export interface RenderParams {
@@ -19,47 +18,32 @@ export interface RenderParams {
     UVOffset: number;
 }
 
-export interface Mesh {
-
-    // v
-    Positions: Float32Array;
-
-    // vt
-    Uvs: Float32Array;
-
-    // vn
-    Normals: Float32Array;
-
-    // f
-    Indices: Uint16Array;
-}
-
 export interface Material {
 
     // newmtl
-    Face: string;
+    Name: string;
 
-    // Ns
-    Shininess: number;
+    // Ns 反射指数
+    SpecularExponent: number;
 
-    // Ka
-    Ambient: Array<number>;
-
-    // Kd
-    Diffuse: Array<number>;
-
-    // Ks
-    Specular: Array<number>;
-
-    // Tf
-    TransmissionFilter: Array<number>;
+    // d 渐隐指数
+    Dissove: number;
 
     // Tr
     Transparency: number;
 
-    // d
-    Opacity: number;
+    // Tf 滤光透射率
+    TransmissionFilter: Vec3;
 
     // illum
     Illum: number;
+
+    // Ka 环境反射
+    Ambient: Vec3;
+
+    // Kd 漫反射
+    Diffuse: Vec3;
+
+    // Ks 镜反射
+    Specular: Vec3;
 }

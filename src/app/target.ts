@@ -1,5 +1,5 @@
 import { Component } from './component';
-import { initStatus } from './lib/model.lib';
+import { InitStatus } from './lib/model.lib';
 
 export class Target {
 
@@ -69,7 +69,7 @@ export class Target {
         }
         for (const component of this.components) {
             const flag = component.draw(this.passEncoder);
-            if (flag == initStatus.FAIL) { return false; }
+            if (flag == InitStatus.FAIL) { return false; }
         }
         return true;
     }

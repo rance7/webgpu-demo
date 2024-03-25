@@ -1,16 +1,14 @@
 import { GUI } from 'dat.gui';
 import { vec3 } from 'wgpu-matrix';
-import { getTextureBlob } from './lib';
+import { MODEL_PATH, getTextureBlob } from './lib';
 import { ArcballCamera, CameraParams, Cameras, WASDCamera, getModelViewProjectionMatrix } from './lib/camera';
 import { InputHandler, createInputHandler } from './lib/input-handler';
-import { ComponentParams, initStatus } from './lib/model.lib';
+import { InitStatus } from './lib/model.lib';
 import { Part } from './part';
 
 export class Component {
 
     public part?: Part;
-
-    public componentParams?: ComponentParams;
 
     public uniformBuffer?: GPUBuffer;
 
@@ -32,37 +30,79 @@ export class Component {
 
     public context2d?: CanvasRenderingContext2D;
 
-    public async initComponent(part: Part, componentParams: ComponentParams): Promise<this> {
-        this.part = part;
-        this.componentParams = componentParams;
+    public initCamera(): InitStatus {
         this.cameras = {
             arcball: new ArcballCamera({ position: vec3.create(3, 2, 5) }),
             WASD: new WASDCamera({ position: vec3.create(3, 2, 5) }),
         };
         this.cameraParams = { type: 'arcball' };
         this.lastFrameMS = Date.now();
+        return InitStatus.OK;
+    }
 
-        if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline) {
-            console.error('Exit initComponent: device, canvas or bindGroupLayout undefined');
-            return this;
+    public initControlBoard(): InitStatus {
+        if (!this.part?.render?.webgpu?.canvas) {
+            console.error('Exit initControlBoard: canvas undefined');
+            return InitStatus.FAIL;
         }
 
         this.inputHandler = createInputHandler(window, this.part.render.webgpu.canvas);
-
-        this.uniformBuffer = this.part.render.webgpu.device.createBuffer({
-            size: Float32Array.BYTES_PER_ELEMENT * 16,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        let oldCameraType = this.cameraParams.type;
+        const gui: GUI = new GUI();
+        gui.domElement.id = 'gui';
+        gui.add(this.cameraParams, 'type', ['arcball', 'WASD']).onChange(() => {
+            const newCameraType = this.cameraParams.type;
+            this.cameras[newCameraType].matrix = this.cameras[oldCameraType].matrix;
+            oldCameraType = newCameraType;
         });
+        const canvasContainer = document.querySelector('.container');
+        if (!canvasContainer) {
+            console.error('Exit initCamera: Fail to get canvas container');
+            return InitStatus.FAIL;
+        }
+        canvasContainer.append(gui.domElement);
+        return InitStatus.OK;
+    }
 
-        const textureBlob: ImageBitmapSource | null = await getTextureBlob(componentParams.TextureUrl);
+    public async createTexture(imgName: string | undefined): Promise<ImageBitmap | null> {
+        if (!imgName) {
+            return null;
+        }
+        const textureBlob: ImageBitmapSource | null = await getTextureBlob(`${MODEL_PATH}/${imgName}`);
         if (!textureBlob) {
-            console.error('Exit initComponent: textureBlob undefined');
-            return this;
+            console.error('Exit createTexture: Fail to get texture blob');
+            return null;
         }
 
         const textureImageBitMap: ImageBitmap = await createImageBitmap(textureBlob, {
             imageOrientation: 'flipY',
         });
+        return textureImageBitMap;
+    }
+
+    public async initComponent(part: Part, imgName: string | undefined): Promise<this> {
+        this.part = part;
+        this.initCamera();
+        this.initControlBoard();
+        if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline) {
+            console.error('Exit initComponent: device, canvas or bindGroupLayout undefined');
+            return this;
+        }
+
+        this.uniformBuffer = this.part.render.webgpu.device.createBuffer({
+            size: Float32Array.BYTES_PER_ELEMENT * 16,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        if (!imgName) {
+            // eslint-disable-next-line no-param-reassign
+            imgName = 'grey.jpg';
+        }
+        const textureImageBitMap: ImageBitmap | null = await this.createTexture(imgName);
+        if (!textureImageBitMap) {
+            console.error('Exit textureImageBitMap: ImageBitmap undefined');
+            return this;
+        }
+
         this.texture = this.part.render.webgpu.device.createTexture({
             size:
             {
@@ -112,35 +152,18 @@ export class Component {
                 },
             ],
         });
-
-        let oldCameraType = this.cameraParams.type;
-        const gui: GUI = new GUI();
-        gui.domElement.id = 'gui';
-        gui.add(this.cameraParams, 'type', ['arcball', 'WASD']).onChange(() => {
-            const newCameraType = this.cameraParams.type;
-            this.cameras[newCameraType].matrix = this.cameras[oldCameraType].matrix;
-            oldCameraType = newCameraType;
-        });
-
-        const canvasContainer = document.querySelector('.container');
-        if (!canvasContainer) {
-            console.error('Fail to get canvas container');
-            return this;
-        }
-        canvasContainer.append(gui.domElement);
-
         return this;
     }
 
-    public draw(passEncoder: GPURenderPassEncoder): initStatus {
+    public draw(passEncoder: GPURenderPassEncoder): InitStatus {
         if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
             console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
-            return initStatus.FAIL;
+            return InitStatus.FAIL;
         }
 
         if (!this.uniformBuffer || !this.part.render.webgpu?.canvas || !this.inputHandler) {
-            console.error('Exit camera: uniformBuffer , canvas or inputHandler undefined');
-            return initStatus.FAIL;
+            console.error('Exit camera: uniformBuffer, canvas or inputHandler undefined');
+            return InitStatus.FAIL;
         }
 
         const now = Date.now();
@@ -161,7 +184,7 @@ export class Component {
         passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.draw(this.part.vertexNumber);
-        return initStatus.OK;
+        return InitStatus.OK;
     }
 
     public rotate(passEncoder: GPURenderPassEncoder): void {

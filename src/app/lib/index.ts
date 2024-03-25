@@ -4,6 +4,8 @@ export const SHADER_PATH: string = './assets/shader.wgsl';
 
 export const CANVAS_ID: string = '#canvas';
 
+export const MODEL_PATH: string = './assets/pistol';
+
 export function convertNullToUndefined<T>(value: Nullable<T>): T | undefined {
     return value as T | undefined;
 }

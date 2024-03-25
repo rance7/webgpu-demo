@@ -15,32 +15,32 @@ export class Webgpu {
 
     public async initWebgpu(): Promise<this> {
         if (!Reflect.has(window.navigator, 'gpu')) {
-            console.error('no gpu available');
+            console.error('Exit initWebgpu: No gpu available');
             return this;
         }
 
         this.gpu = window.navigator.gpu;
         this.gpuAdapter = await this.gpu.requestAdapter();
         if (!this.gpuAdapter) {
-            console.error('fail to get gpu adapter');
+            console.error('Exit initWebgpu: Fail to get gpu adapter');
             return this;
         }
 
         this.device = await this.gpuAdapter.requestDevice();
         if (!this.device) {
-            console.error('fail to get device');
+            console.error('Exit initWebgpu: Fail to get device');
             return this;
         }
 
         this.canvas = convertNullToUndefined(document.querySelector(CANVAS_ID));
         if (!this.canvas) {
-            console.error(`no canvas with id ${CANVAS_ID}`);
+            console.error(`Exit initWebgpu: No canvas with id ${CANVAS_ID}`);
             return this;
         }
 
         this.canvasContext = convertNullToUndefined(this.canvas.getContext('webgpu'));
         if (!this.canvasContext) {
-            console.error('fail to get canvas context');
+            console.error('Exit initWebgpu: Fail to get canvas context');
             return this;
         }
 

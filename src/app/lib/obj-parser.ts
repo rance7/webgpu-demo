@@ -1,127 +1,191 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
-import { getFileContent } from '.';
-import { Mesh } from './model.lib';
+import { MODEL_PATH, getFileContent } from '.';
+import { Vertices } from './model.lib';
 
 export class ObjParser {
 
-    public vt: Array<Vec2>;
+    public mtl: Map<string, Array<string>>;
 
-    public vn: Array<Vec3>;
+    public vt: Map<string, Array<Vec2>>;
 
-    public v: Array<Vec3>;
+    public vn: Map<string, Array<Vec3>>;
 
-    public f: Array<Array<string>>;
+    public v: Map<string, Array<Vec3>>;
+
+    public f: Map<string, Map<string, Array<Array<string>>>>;
 
     public constructor() {
-        this.vt = [];
-        this.vn = [];
-        this.v = [];
-        this.f = [];
+        this.mtl = new Map();
+        this.vt = new Map();
+        this.vn = new Map();
+        this.v = new Map();
+        this.f = new Map();
     }
 
-    public async parseObj(objPath: string): Promise<void> {
+    public async parseObj(objPath: string): Promise<string> {
         const objContent: string | null = await getFileContent(objPath);
         if (!objContent) {
             console.error('Fail to load obj content');
-            return;
+            return '';
         }
-        const lines: Array<string> = objContent.split('\n');
+
+        const mtl: Array<string> = [];
+
+        const vt: Array<Vec2> = [];
+
+        const vn: Array<Vec3> = [];
+
+        const v: Array<Vec3> = [];
+
+        let f: Array<Array<string>> = [];
+
+        const mtlMap: Map<string, Array<Array<string>>> = new Map();
+
+        let mtlFileName: string = '';
+        let currentComponent: string = '';
+        let currentMatrial: string = '';
+        const lines: Array<string> = objContent.replaceAll('\r', '').split('\n');
         for (const line of lines) {
             const trimedLine: string = line.trim();
             if (trimedLine == '' || trimedLine.startsWith('#')) {
                 continue;
             }
-            const [startingChar, ...data] = line.replaceAll('\r', '').trim().split(' ');
+
+            const [startingChar, ...data] = trimedLine.split(/\s+/u);
             switch (startingChar) {
                 case 'vt':
-                    this.vt.push([
+                    vt.push([
                         Number(data[0]).valueOf(),
                         Number(data[1]).valueOf(),
                     ]);
                     break;
                 case 'vn':
-                    this.vn.push([
+                    vn.push([
                         Number(data[0]).valueOf(),
                         Number(data[1]).valueOf(),
                         Number(data[2]).valueOf(),
                     ]);
                     break;
                 case 'v':
-                    this.v.push([
+                    v.push([
                         Number(data[0]).valueOf(),
                         Number(data[1]).valueOf(),
                         Number(data[2]).valueOf(),
                     ]);
                     break;
                 case 'f':
-                    this.f.push(data);
+                    f.push(data);
+                    break;
+                case 'usemtl':
+                    if (currentMatrial) {
+                        mtlMap.set(currentMatrial, f);
+                    }
+                    currentMatrial = data[0];
+                    mtl.push(data[0]);
+                    f = [];
+                    break;
+                case 'o':
+                    if (currentComponent) {
+                        this.mtl.set(currentComponent, mtl);
+                        this.vt.set(currentComponent, vt);
+                        this.vn.set(currentComponent, vn);
+                        this.v.set(currentComponent, v);
+                        this.f.set(currentComponent, mtlMap);
+                    }
+                    currentComponent = data[0];
+                    break;
+                case 'mtllib':
+                    mtlFileName = data[0];
                     break;
                 default:
                     break;
             }
         }
+        mtlMap.set(currentMatrial, f);
+        this.mtl.set(currentComponent, mtl);
+        this.vt.set(currentComponent, vt);
+        this.vn.set(currentComponent, vn);
+        this.v.set(currentComponent, v);
+        this.f.set(currentComponent, mtlMap);
+        return mtlFileName;
     }
 
-    public async parseObj2Vertices(objContent: string): Promise<Float32Array> {
-        await this.parseObj(objContent);
-
-        const result: Array<number> = [];
-        for (const faces of this.f) {
-            for (const face of faces) {
-                const indices: Array<string> = face.split('/');
-                const v: Vec3 = this.v[Number(indices[0]).valueOf() - 1];
-                const vt: Vec2 = this.vt[Number(indices[1]).valueOf() - 1];
-                result.push(...v, 1, ...vt);
-            }
+    public async parseObj2Vertices(objContent: string): Promise<Array<Vertices> | null> {
+        const mtlFileName: string = await this.parseObj(objContent);
+        if (!mtlFileName) {
+            return null;
         }
-        return new Float32Array(result);
-    }
 
-    public async parseObj2Mesh(objContent: string): Promise<Mesh> {
-        await this.parseObj(objContent);
+        const mtlMap: Map<string, string> | null = await this.parseMtl(mtlFileName);
+        if (!mtlMap) {
+            return null;
+        }
 
-        const finalUvs: Array<number> = [];
-        const finalNormals: Array<number> = [];
-        const finalPositions: Array<number> = [];
-        const finalIndices: Array<number> = [];
-
-        {
-            const cache: Record<string, number> = {};
-            let i: number = 0;
-            for (const faces of this.f) {
-                for (const face of faces) {
-                    if (!cache[face]) {
-                        finalIndices.push(cache[face]);
-                        continue;
-                    }
-
-                    cache[face] = i;
-                    finalIndices.push(i);
-
-                    const [vI, uvI, nI] = face.split('/').map((s: string) => Number(s).valueOf() - 1);
-
-                    if (vI > -1) {
-                        finalPositions.push(...this.v[vI]);
-                    }
-
-                    if (uvI > -1) {
-                        finalUvs.push(...this.vt[uvI]);
-                    }
-
-                    if (nI > -1) {
-                        finalNormals.push(...this.vn[nI]);
-                    }
-                    i += 1;
+        let componentVertices: Array<number> = [];
+        const result: Array<Vertices> = [];
+        for (const componentKey of this.f.keys()) {
+            const verticesMap: Map<string, Array<Array<string>>> | undefined = this.f.get(componentKey);
+            if (!verticesMap) {
+                continue;
+            }
+            for (const mtlKey of verticesMap.keys()) {
+                const vertices: Array<Array<string>> | undefined = verticesMap.get(mtlKey);
+                if (!vertices) {
+                    continue;
                 }
+                for (const faces of vertices) {
+                    for (const face of faces) {
+                        const indices: Array<string> = face.split('/');
+                        const v: Array<Vec3> | undefined = this.v.get(componentKey);
+                        const vt: Array<Vec3> | undefined = this.vt.get(componentKey);
+                        if (!v || !vt) {
+                            continue;
+                        }
+                        componentVertices.push(...v[Number(indices[0]).valueOf() - 1], 1, ...vt[Number(indices[1]).valueOf() - 1]);
+                    }
+                }
+                const temp: Float32Array = new Float32Array(componentVertices);
+                const record: Vertices = {
+                    TextureImgName: mtlMap.get(mtlKey),
+                    Vertex: temp,
+                };
+                result.push(record);
+                componentVertices = [];
             }
         }
 
-        return {
-            Positions: new Float32Array(finalPositions),
-            Uvs: new Float32Array(finalUvs),
-            Normals: new Float32Array(finalNormals),
-            Indices: new Uint16Array(finalIndices),
-        };
+        return result;
+    }
+
+    public async parseMtl(mtlFileName: string): Promise<Map<string, string> | null> {
+        const mtlData: string | null = await getFileContent(`${MODEL_PATH}/${mtlFileName}`);
+        if (!mtlData) {
+            console.error('Fail to get mtl file content');
+            return null;
+        }
+
+        let currentMatrial: string = '';
+        const result: Map<string, string> = new Map();
+        const lines: Array<string> = mtlData.replaceAll('\r', '').split('\n');
+        for (const line of lines) {
+            const trimedLine: string = line.trim();
+            if (trimedLine == '' || trimedLine.startsWith('#')) {
+                continue;
+            }
+
+            const [startingChar, ...data] = trimedLine.split(/\s+/u);
+            switch (startingChar) {
+                case 'map_Kd':
+                    result.set(currentMatrial, data[0]);
+                    break;
+                case 'newmtl':
+                    currentMatrial = data[0];
+                    break;
+                default:
+                    break;
+            }
+        }
+        return result;
     }
 
 }
