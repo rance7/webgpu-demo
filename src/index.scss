@@ -27,6 +27,37 @@ main {
     #gui {
         position: absolute;
         top: 0;
+        left: 0;
+    }
+
+    #info {
+        position: absolute;
         right: 0;
+        top: 0;
+        padding: 0.5em;
+        background-color: rgba(0, 0, 0, 0.9);
+        color: white;
+        min-width: 7em;
+    }
+
+    #fail {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: red;
+        color: white;
+        font-weight: bold;
+        font-family: monospace;
+        font-size: 16pt;
+        text-align: center;
+    }
+
+    .shape:hover {
+        fill: red;
     }
 }

@@ -146,8 +146,8 @@ export class ObjParser {
                 }
                 const temp: Float32Array = new Float32Array(componentVertices);
                 const record: Vertices = {
-                    TextureImgName: mtlMap.get(mtlKey),
-                    Vertex: temp,
+                    textureImgName: mtlMap.get(mtlKey),
+                    vertex: temp,
                 };
                 result.push(record);
                 componentVertices = [];

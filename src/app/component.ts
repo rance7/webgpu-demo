@@ -1,8 +1,8 @@
 import { GUI } from 'dat.gui';
 import { vec3 } from 'wgpu-matrix';
 import { MODEL_PATH, getTextureBlob } from './lib';
-import { ArcballCamera, CameraParams, Cameras, WASDCamera, getModelViewProjectionMatrix } from './lib/camera';
-import { InputHandler, createInputHandler } from './lib/input-handler';
+import { ArcballCamera, CameraParams, Cameras, WASDCamera, getModelViewProjectionMatrix } from './lib/camera.lib';
+import { InputHandler, createInputHandler } from './lib/input-handler.lib';
 import { InitStatus } from './lib/model.lib';
 import { Part } from './part';
 
@@ -12,17 +12,21 @@ export class Component {
 
     public uniformBuffer?: GPUBuffer;
 
+    public pickUniformBuffer?: GPUBuffer;
+
     public texture?: GPUTexture;
 
     public sampler?: GPUSampler;
 
     public bindGroup?: GPUBindGroup;
 
+    public pickBindgroup?: GPUBindGroup;
+
     public cameras!: Cameras;
 
     public cameraParams!: CameraParams;
 
-    public lastFrameMS!: number;
+    public lastFrameTime!: number;
 
     public inputHandler?: InputHandler;
 
@@ -30,13 +34,19 @@ export class Component {
 
     public context2d?: CanvasRenderingContext2D;
 
+    public mouseX: number = -1;
+
+    public mouseY: number = -1;
+
+    public pickupUniformId: Uint32Array = new Uint32Array(1);
+
     public initCamera(): InitStatus {
         this.cameras = {
             arcball: new ArcballCamera({ position: vec3.create(3, 2, 5) }),
-            WASD: new WASDCamera({ position: vec3.create(3, 2, 5) }),
+            keyboard: new WASDCamera({ position: vec3.create(3, 2, 5) }),
         };
         this.cameraParams = { type: 'arcball' };
-        this.lastFrameMS = Date.now();
+        this.lastFrameTime = Date.now();
         return InitStatus.OK;
     }
 
@@ -50,7 +60,7 @@ export class Component {
         let oldCameraType = this.cameraParams.type;
         const gui: GUI = new GUI();
         gui.domElement.id = 'gui';
-        gui.add(this.cameraParams, 'type', ['arcball', 'WASD']).onChange(() => {
+        gui.add(this.cameraParams, 'type', ['arcball', 'keyboard']).onChange(() => {
             const newCameraType = this.cameraParams.type;
             this.cameras[newCameraType].matrix = this.cameras[oldCameraType].matrix;
             oldCameraType = newCameraType;
@@ -65,10 +75,7 @@ export class Component {
     }
 
     public async createTexture(imgName: string | undefined): Promise<ImageBitmap | null> {
-        if (!imgName) {
-            return null;
-        }
-        const textureBlob: ImageBitmapSource | null = await getTextureBlob(`${MODEL_PATH}/${imgName}`);
+        const textureBlob: ImageBitmapSource | null = await getTextureBlob(imgName ? `${MODEL_PATH}/${imgName}` : './assets/grey.jpg');
         if (!textureBlob) {
             console.error('Exit createTexture: Fail to get texture blob');
             return null;
@@ -84,8 +91,8 @@ export class Component {
         this.part = part;
         this.initCamera();
         this.initControlBoard();
-        if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline) {
-            console.error('Exit initComponent: device, canvas or bindGroupLayout undefined');
+        if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline || !this.part.render.pickupPipeline) {
+            console.error('Exit initComponent: device, canvas or pipeline undefined');
             return this;
         }
 
@@ -93,10 +100,12 @@ export class Component {
             size: Float32Array.BYTES_PER_ELEMENT * 16,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
-        if (!imgName) {
-            // eslint-disable-next-line no-param-reassign
-            imgName = 'grey.jpg';
-        }
+
+        this.pickUniformBuffer = this.part.render.webgpu.device.createBuffer({
+            size: Uint32Array.BYTES_PER_ELEMENT,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
         const textureImageBitMap: ImageBitmap | null = await this.createTexture(imgName);
         if (!textureImageBitMap) {
             console.error('Exit textureImageBitMap: ImageBitmap undefined');
@@ -152,12 +161,37 @@ export class Component {
                 },
             ],
         });
+
+        this.pickBindgroup = this.part.render.webgpu.device.createBindGroup({
+            layout: this.part.render.pickupPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.uniformBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.pickUniformBuffer },
+                },
+            ],
+        });
+
+        // eslint-disable-next-line consistent-return
+        window.addEventListener('mousemove', e => {
+            if (!this.part?.render?.webgpu?.canvas) {
+                return this;
+            }
+            const rect: DOMRect = this.part.render.webgpu.canvas.getBoundingClientRect();
+            this.mouseX = e.clientX - rect.left;
+            this.mouseY = e.clientY - rect.top;
+        });
+
         return this;
     }
 
     public draw(passEncoder: GPURenderPassEncoder): InitStatus {
         if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
-            console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
+            console.error('Exit camera1: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
             return InitStatus.FAIL;
         }
 
@@ -167,8 +201,8 @@ export class Component {
         }
 
         const now = Date.now();
-        const deltaTime = (now - this.lastFrameMS) / 1000;
-        this.lastFrameMS = now;
+        const deltaTime = (now - this.lastFrameTime) / 1000;
+        this.lastFrameTime = now;
         const aspect = this.part?.render?.webgpu?.canvas.width / this.part?.render?.webgpu?.canvas.height;
         const modelViewProjection = getModelViewProjectionMatrix(deltaTime, this.cameras[this.cameraParams.type], this.inputHandler, aspect);
 
@@ -184,7 +218,62 @@ export class Component {
         passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.draw(this.part.vertexNumber);
+
         return InitStatus.OK;
+    }
+
+    public async drawId(pickupCommandEncoder: GPUCommandEncoder, pickupPassEncoder: GPURenderPassEncoder, pickupTexture: GPUTexture): Promise<InitStatus> {
+        if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
+            console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
+            return InitStatus.FAIL;
+        }
+        if (!this.part?.render?.webgpu?.device || !this.part.render.pickupPipeline || !this.pickBindgroup) {
+            return InitStatus.FAIL;
+        }
+        const pickupBuffer: GPUBuffer = this.part.render.webgpu.device.createBuffer({
+            size: Uint32Array.BYTES_PER_ELEMENT * 4,
+            usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        });
+
+        pickupPassEncoder.setPipeline(this.part.render.pickupPipeline);
+        pickupPassEncoder.setVertexBuffer(0, this.part.vertexBuffer);
+        pickupPassEncoder.setBindGroup(0, this.pickBindgroup);
+        pickupPassEncoder.draw(this.part.vertexNumber);
+
+        pickupCommandEncoder.copyTextureToBuffer({
+            texture: pickupTexture,
+            origin: {
+                x: 0,
+                y: 0,
+            },
+        }, {
+            buffer: pickupBuffer,
+            offset: 0,
+            bytesPerRow: Uint32Array.BYTES_PER_ELEMENT * 16 * 4,
+            rowsPerImage: 1,
+        }, {
+            width: 1,
+            height: 1,
+        });
+
+        await pickupBuffer.mapAsync(GPUMapMode.READ, 0, Uint32Array.BYTES_PER_ELEMENT * 4);
+        const ids: Uint32Array = new Uint32Array(pickupBuffer.getMappedRange(0, Uint32Array.BYTES_PER_ELEMENT * 4));
+        const id: number = ids[0];
+        console.info(id);
+        pickupBuffer.unmap();
+        const infoElem: HTMLElement | null = document.querySelector('#pickup');
+        if (!infoElem || !this.pickUniformBuffer) {
+            return InitStatus.FAIL;
+        }
+        this.part.render.webgpu.device.queue.writeBuffer(
+            this.pickUniformBuffer,
+            0,
+            this.pickupUniformId.buffer,
+            this.pickupUniformId.byteOffset,
+            this.pickupUniformId.byteLength,
+        );
+        infoElem.textContent = `obj#: ${id || 'none'}`;
+        return InitStatus.FAIL;
     }
 
     public rotate(passEncoder: GPURenderPassEncoder): void {

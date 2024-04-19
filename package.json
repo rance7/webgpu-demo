@@ -25,7 +25,7 @@
     "license": "ISC",
     "name": "webgpu-demo",
     "scripts": {
-        "amend": "git commit --all --amend --no-edit --date=now && git push -f",
+        "amend": "git add . && git commit --all --amend --no-edit --date=now && git push -f",
         "build": "webpack --mode production",
         "debug:serve": "http-server -p 8080 ./dist",
         "start": "webpack serve"

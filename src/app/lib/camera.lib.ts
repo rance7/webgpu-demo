@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/member-ordering */
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import Controller, { InputHandler } from './input-handler';
+import Controller, { InputHandler } from './input-handler.lib';
 
 // Returns `x` clamped between [`min` .. `max`]
 function clamp(x: number, min: number, max: number): number {
@@ -44,7 +47,10 @@ export interface Camera {
 export class CameraBase {
 
     private readonly matrix_: Float32Array = new Float32Array([
-        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
     ]);
 
     // The calculated view matrix
@@ -344,11 +350,11 @@ export class ArcballCamera extends CameraBase implements Camera {
 }
 
 export interface CameraParams {
-    type: 'arcball' | 'WASD';
+    type: 'arcball' | 'keyboard';
 }
 
 export interface Cameras {
-    WASD: WASDCamera;
+    keyboard: WASDCamera;
     arcball: ArcballCamera;
 }
 

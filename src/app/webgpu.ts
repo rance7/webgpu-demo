@@ -5,13 +5,15 @@ export class Webgpu {
 
     public gpu?: GPU;
 
-    public gpuAdapter?: GPUAdapter | null;
-
     public device?: GPUDevice;
 
     public canvas?: HTMLCanvasElement;
 
     public canvasContext?: GPUCanvasContext;
+
+    public commandEncoder?: GPUCommandEncoder;
+
+    public renderPassEncoder?: GPURenderPassEncoder;
 
     public async initWebgpu(): Promise<this> {
         if (!Reflect.has(window.navigator, 'gpu')) {
@@ -20,13 +22,13 @@ export class Webgpu {
         }
 
         this.gpu = window.navigator.gpu;
-        this.gpuAdapter = await this.gpu.requestAdapter();
-        if (!this.gpuAdapter) {
+        const gpuAdapter: GPUAdapter | null = await this.gpu.requestAdapter();
+        if (!gpuAdapter) {
             console.error('Exit initWebgpu: Fail to get gpu adapter');
             return this;
         }
 
-        this.device = await this.gpuAdapter.requestDevice();
+        this.device = await gpuAdapter.requestDevice();
         if (!this.device) {
             console.error('Exit initWebgpu: Fail to get device');
             return this;
@@ -53,6 +55,15 @@ export class Webgpu {
             alphaMode: 'premultiplied',
         });
         return this;
+    }
+
+    public destroy(): void {
+        this.gpu = undefined;
+        this.device = undefined;
+        this.canvas = undefined;
+        this.canvasContext = undefined;
+        this.commandEncoder = undefined;
+        this.renderPassEncoder = undefined;
     }
 
 }

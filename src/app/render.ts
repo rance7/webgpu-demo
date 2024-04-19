@@ -4,13 +4,15 @@ import { Webgpu } from './webgpu';
 
 export class Render {
 
-    public bindGroupLayoutEntries?: Array<GPUBindGroupLayoutEntry>;
+    public bindgroupLayoutEntries?: Array<GPUBindGroupLayoutEntry>;
 
-    public bindGroupLayout?: GPUBindGroupLayout;
+    public bindgroupLayout?: GPUBindGroupLayout;
 
     public pipelineLayout?: GPUPipelineLayout;
 
     public pipeline?: GPURenderPipeline;
+
+    public pickupPipeline?: GPURenderPipeline;
 
     public shaderModule?: GPUShaderModule;
 
@@ -38,20 +40,21 @@ export class Render {
             layout: 'auto',
             vertex: {
                 module: this.shaderModule,
+                entryPoint: 'VertexMain',
                 buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.ArrayStride,
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.arrayStride,
                     attributes:
                         [
                             {
                                 // position
                                 format: 'float32x4',
-                                offset: renderParams.PositionOffset,
+                                offset: renderParams.positionOffset,
                                 shaderLocation: 0,
                             },
                             {
                                 // uv
                                 format: 'float32x2',
-                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.UVOffset,
+                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.uvOffset,
                                 shaderLocation: 1,
                             },
                         ],
@@ -59,6 +62,7 @@ export class Render {
             },
             fragment: {
                 module: this.shaderModule,
+                entryPoint: 'FragmentMain',
                 targets: [
                     {
                         format: this.webgpu.gpu.getPreferredCanvasFormat(),
@@ -79,6 +83,49 @@ export class Render {
                 stencilWriteMask: 0x01,
             },
         });
+
+        this.pickupPipeline = this.webgpu.device.createRenderPipeline({
+            layout: 'auto',
+            vertex: {
+                module: this.shaderModule,
+                entryPoint: 'VertexMain',
+                buffers: [{
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.arrayStride,
+                    attributes:
+                        [
+                            {
+                                // position
+                                format: 'float32x4',
+                                offset: renderParams.positionOffset,
+                                shaderLocation: 0,
+                            },
+                            {
+                                // uv
+                                format: 'float32x2',
+                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.uvOffset,
+                                shaderLocation: 1,
+                            },
+                        ],
+                }],
+            },
+            fragment: {
+                module: this.shaderModule,
+                entryPoint: 'FragmentPick',
+                targets: [
+                    { format: 'r32uint' },
+                ],
+            },
+            primitive: {
+                topology: 'triangle-list',
+                cullMode: 'back',
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus',
+            },
+        });
+
         return this;
     }
 

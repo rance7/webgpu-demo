@@ -8,42 +8,42 @@ export enum InitStatus {
 }
 
 export interface Vertices {
-    TextureImgName: string | undefined;
-    Vertex: Float32Array;
+    textureImgName: string | undefined;
+    vertex: Float32Array;
 }
 
 export interface RenderParams {
-    ArrayStride: number;
-    PositionOffset: number;
-    UVOffset: number;
+    arrayStride: number;
+    positionOffset: number;
+    uvOffset: number;
 }
 
 export interface Material {
 
     // newmtl
-    Name: string;
+    name: string;
 
     // Ns 反射指数
-    SpecularExponent: number;
+    specularExponent: number;
 
     // d 渐隐指数
-    Dissove: number;
+    dissove: number;
 
     // Tr
-    Transparency: number;
+    transparency: number;
 
     // Tf 滤光透射率
-    TransmissionFilter: Vec3;
+    transmissionFilter: Vec3;
 
     // illum
-    Illum: number;
+    illum: number;
 
     // Ka 环境反射
-    Ambient: Vec3;
+    ambient: Vec3;
 
     // Kd 漫反射
-    Diffuse: Vec3;
+    diffuse: Vec3;
 
     // Ks 镜反射
-    Specular: Vec3;
+    specular: Vec3;
 }
