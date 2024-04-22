@@ -4,8 +4,6 @@ import { Vertices } from './model.lib';
 
 export class ObjParser {
 
-    public mtl: Map<string, Array<string>>;
-
     public vt: Map<string, Array<Vec2>>;
 
     public vn: Map<string, Array<Vec3>>;
@@ -15,7 +13,6 @@ export class ObjParser {
     public f: Map<string, Map<string, Array<Array<string>>>>;
 
     public constructor() {
-        this.mtl = new Map();
         this.vt = new Map();
         this.vn = new Map();
         this.v = new Map();
@@ -29,8 +26,6 @@ export class ObjParser {
             return '';
         }
 
-        const mtl: Array<string> = [];
-
         const vt: Array<Vec2> = [];
 
         const vn: Array<Vec3> = [];
@@ -38,8 +33,6 @@ export class ObjParser {
         const v: Array<Vec3> = [];
 
         let f: Array<Array<string>> = [];
-
-        const mtlMap: Map<string, Array<Array<string>>> = new Map();
 
         let mtlFileName: string = '';
         let currentComponent: string = '';
@@ -77,16 +70,13 @@ export class ObjParser {
                     f.push(data);
                     break;
                 case 'usemtl':
-                    if (currentMatrial) {
-                        mtlMap.set(currentMatrial, f);
-                    }
                     currentMatrial = data[0];
-                    mtl.push(data[0]);
                     f = [];
                     break;
                 case 'o':
                     if (currentComponent) {
-                        this.mtl.set(currentComponent, mtl);
+                        const mtlMap: Map<string, Array<Array<string>>> = new Map();
+                        mtlMap.set(currentMatrial, f);
                         this.vt.set(currentComponent, vt);
                         this.vn.set(currentComponent, vn);
                         this.v.set(currentComponent, v);
@@ -101,8 +91,8 @@ export class ObjParser {
                     break;
             }
         }
+        const mtlMap: Map<string, Array<Array<string>>> = new Map();
         mtlMap.set(currentMatrial, f);
-        this.mtl.set(currentComponent, mtl);
         this.vt.set(currentComponent, vt);
         this.vn.set(currentComponent, vn);
         this.v.set(currentComponent, v);
@@ -116,8 +106,8 @@ export class ObjParser {
             return null;
         }
 
-        const mtlMap: Map<string, string> | null = await this.parseMtl(mtlFileName);
-        if (!mtlMap) {
+        const mtlTextureMap: Map<string, string> | null = await this.parseMtl(mtlFileName);
+        if (!mtlTextureMap) {
             return null;
         }
 
@@ -146,7 +136,7 @@ export class ObjParser {
                 }
                 const temp: Float32Array = new Float32Array(componentVertices);
                 const record: Vertices = {
-                    textureImgName: mtlMap.get(mtlKey),
+                    textureImgName: mtlTextureMap.get(mtlKey),
                     vertex: temp,
                 };
                 result.push(record);

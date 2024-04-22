@@ -4,12 +4,6 @@ import { Webgpu } from './webgpu';
 
 export class Render {
 
-    public bindgroupLayoutEntries?: Array<GPUBindGroupLayoutEntry>;
-
-    public bindgroupLayout?: GPUBindGroupLayout;
-
-    public pipelineLayout?: GPUPipelineLayout;
-
     public pipeline?: GPURenderPipeline;
 
     public pickupPipeline?: GPURenderPipeline;
@@ -42,19 +36,19 @@ export class Render {
                 module: this.shaderModule,
                 entryPoint: 'VertexMain',
                 buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.arrayStride,
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * this.renderParams.arrayStride,
                     attributes:
                         [
                             {
                                 // position
                                 format: 'float32x4',
-                                offset: renderParams.positionOffset,
+                                offset: this.renderParams.positionOffset,
                                 shaderLocation: 0,
                             },
                             {
                                 // uv
                                 format: 'float32x2',
-                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.uvOffset,
+                                offset: Float32Array.BYTES_PER_ELEMENT * this.renderParams.uvOffset,
                                 shaderLocation: 1,
                             },
                         ],
@@ -90,19 +84,19 @@ export class Render {
                 module: this.shaderModule,
                 entryPoint: 'VertexMain',
                 buffers: [{
-                    arrayStride: Float32Array.BYTES_PER_ELEMENT * renderParams.arrayStride,
+                    arrayStride: Float32Array.BYTES_PER_ELEMENT * this.renderParams.arrayStride,
                     attributes:
                         [
                             {
                                 // position
                                 format: 'float32x4',
-                                offset: renderParams.positionOffset,
+                                offset: this.renderParams.positionOffset,
                                 shaderLocation: 0,
                             },
                             {
                                 // uv
                                 format: 'float32x2',
-                                offset: Float32Array.BYTES_PER_ELEMENT * renderParams.uvOffset,
+                                offset: Float32Array.BYTES_PER_ELEMENT * this.renderParams.uvOffset,
                                 shaderLocation: 1,
                             },
                         ],

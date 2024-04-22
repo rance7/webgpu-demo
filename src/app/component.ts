@@ -189,15 +189,15 @@ export class Component {
         return this;
     }
 
-    public draw(passEncoder: GPURenderPassEncoder): InitStatus {
+    public draw(passEncoder: GPURenderPassEncoder): void {
         if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
             console.error('Exit camera1: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
-            return InitStatus.FAIL;
+            return;
         }
 
         if (!this.uniformBuffer || !this.part.render.webgpu?.canvas || !this.inputHandler) {
             console.error('Exit camera: uniformBuffer, canvas or inputHandler undefined');
-            return InitStatus.FAIL;
+            return;
         }
 
         const now = Date.now();
@@ -218,17 +218,15 @@ export class Component {
         passEncoder.setVertexBuffer(0, this.part.vertexBuffer);
         passEncoder.setBindGroup(0, this.bindGroup);
         passEncoder.draw(this.part.vertexNumber);
-
-        return InitStatus.OK;
     }
 
-    public async drawId(pickupCommandEncoder: GPUCommandEncoder, pickupPassEncoder: GPURenderPassEncoder, pickupTexture: GPUTexture): Promise<InitStatus> {
+    public async drawId(commandEncoder: GPUCommandEncoder, pickupTexture: GPUTexture, pickupPassEncoder: GPURenderPassEncoder): Promise<void> {
         if (!this.bindGroup || !this.part?.render?.pipeline || !this.part.vertexNumber || !this.part.vertexBuffer) {
             console.error('Exit camera: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
-            return InitStatus.FAIL;
+            return;
         }
         if (!this.part?.render?.webgpu?.device || !this.part.render.pickupPipeline || !this.pickBindgroup) {
-            return InitStatus.FAIL;
+            return;
         }
         const pickupBuffer: GPUBuffer = this.part.render.webgpu.device.createBuffer({
             size: Uint32Array.BYTES_PER_ELEMENT * 4,
@@ -240,11 +238,11 @@ export class Component {
         pickupPassEncoder.setBindGroup(0, this.pickBindgroup);
         pickupPassEncoder.draw(this.part.vertexNumber);
 
-        pickupCommandEncoder.copyTextureToBuffer({
+        commandEncoder.copyTextureToBuffer({
             texture: pickupTexture,
             origin: {
-                x: 0,
-                y: 0,
+                x: 100,
+                y: 100,
             },
         }, {
             buffer: pickupBuffer,
@@ -259,11 +257,10 @@ export class Component {
         await pickupBuffer.mapAsync(GPUMapMode.READ, 0, Uint32Array.BYTES_PER_ELEMENT * 4);
         const ids: Uint32Array = new Uint32Array(pickupBuffer.getMappedRange(0, Uint32Array.BYTES_PER_ELEMENT * 4));
         const id: number = ids[0];
-        console.info(id);
         pickupBuffer.unmap();
         const infoElem: HTMLElement | null = document.querySelector('#pickup');
         if (!infoElem || !this.pickUniformBuffer) {
-            return InitStatus.FAIL;
+            return;
         }
         this.part.render.webgpu.device.queue.writeBuffer(
             this.pickUniformBuffer,
@@ -273,7 +270,6 @@ export class Component {
             this.pickupUniformId.byteLength,
         );
         infoElem.textContent = `obj#: ${id || 'none'}`;
-        return InitStatus.FAIL;
     }
 
     public rotate(passEncoder: GPURenderPassEncoder): void {
