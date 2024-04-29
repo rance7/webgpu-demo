@@ -2,11 +2,6 @@ import { Vec3 } from 'wgpu-matrix';
 
 export type Nullable<T> = T | null;
 
-export enum InitStatus {
-    FAIL = 0,
-    OK = 1,
-}
-
 export interface Vertices {
     textureImgName: string | undefined;
     vertex: Float32Array;

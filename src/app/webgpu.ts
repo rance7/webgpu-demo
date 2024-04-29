@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { CANVAS_ID, convertNullToUndefined } from './lib';
 
 export class Webgpu {
@@ -29,10 +28,6 @@ export class Webgpu {
         }
 
         this.device = await gpuAdapter.requestDevice();
-        if (!this.device) {
-            console.error('Exit initWebgpu: Fail to get device');
-            return this;
-        }
 
         this.canvas = convertNullToUndefined(document.querySelector(CANVAS_ID));
         if (!this.canvas) {

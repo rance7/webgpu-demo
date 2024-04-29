@@ -2,17 +2,12 @@ struct ViewUniform {
   modelViewProjectionMatrix: mat4x4f,
 }
 
-struct PickUniform {
-    id: u32,
-}
-
 @group(0) @binding(0) var<uniform> viewUniform : ViewUniform;
 @group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(1) var<uniform> pickUniform : PickUniform;
 @group(0) @binding(2) var textureSampler: sampler;
 
 struct VertexToFragmentStruct {
-  @builtin(position) Position: vec4f,
+  @builtin(position) vertexPosition: vec4f,
   @location(0) uv: vec2f,
 }
 
@@ -24,12 +19,18 @@ fn VertexMain(
     return VertexToFragmentStruct(viewUniform.modelViewProjectionMatrix * position, uv);
 }
 
+struct PickUniform {
+    id: u32,
+}
+
+@group(0) @binding(3) var<uniform> pickUniforms : PickUniform;
+
 @fragment
-fn FragmentMain(@location(0) uv: vec2f) -> @location(0) vec4f {
-    return textureSample(texture, textureSampler, uv);
+fn FragmentMain(v: VertexToFragmentStruct) -> @location(0) vec4f {
+    return textureSample(texture, textureSampler, v.uv);
 }
 
 @fragment
-fn FragmentPick() -> @location(0) u32 {
-    return pickUniform.id;
+fn FragmentPick(v: VertexToFragmentStruct) -> @location(0) u32 {
+    return pickUniforms.id;
 }

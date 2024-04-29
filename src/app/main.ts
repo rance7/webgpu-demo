@@ -26,8 +26,7 @@ async function main(): Promise<void> {
     for (const componentVertex of vertexData) {
         components.push(await new Component().initComponent(new Part().initPart(render, componentVertex.vertex), componentVertex.textureImgName));
     }
-    const target: Target = new Target();
-    await target.initTarget(components).doDraw();
+    await new Target(components).doDraw();
 }
 
 await main();
