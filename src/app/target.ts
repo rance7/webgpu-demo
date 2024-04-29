@@ -1,4 +1,5 @@
 import { Component } from './component';
+import { CURRENT_COMPONENT, SELECTED_COMPONENT } from './lib';
 import { getModelViewProjectionMatrix } from './lib/camera.lib';
 import { PerspectiveController } from './perspective-controller';
 
@@ -21,6 +22,10 @@ export class Target {
     public perspectiveController!: PerspectiveController;
 
     public components!: Array<Component>;
+
+    public currentComonentId: number = 0;
+
+    public seletedComponentId: number = 0;
 
     public constructor(components: Array<Component>) {
         this.components = components;
@@ -152,12 +157,17 @@ export class Target {
 
         await pickupBuffer.mapAsync(GPUMapMode.READ, 0, Uint32Array.BYTES_PER_ELEMENT * 4);
         const ids: Uint32Array = new Uint32Array(pickupBuffer.getMappedRange(0, Uint32Array.BYTES_PER_ELEMENT * 4));
-        const id: number = ids[0];
+        this.currentComonentId = ids[0];
         pickupBuffer.unmap();
 
-        const pickupInfoElem: HTMLElement | null = document.querySelector('#pickup');
-        if (pickupInfoElem) {
-            pickupInfoElem.textContent = `obj#: ${id || 'none'}`;
+        const currentElem: HTMLElement | null = document.querySelector(CURRENT_COMPONENT);
+        if (currentElem) {
+            currentElem.textContent = `current-elem#: ${this.currentComonentId || 'none'}`;
+        }
+
+        const selectedElem: HTMLElement | null = document.querySelector(SELECTED_COMPONENT);
+        if (selectedElem) {
+            selectedElem.textContent = `selected-elem#: ${this.seletedComponentId || 'none'}`;
         }
     }
 
@@ -176,7 +186,7 @@ export class Target {
         const deltaTime = (now - this.perspectiveController.lastFrameTime) / 1000;
         this.perspectiveController.lastFrameTime = now;
         const aspect = component.part.render.webgpu.canvas.width / component.part.render.webgpu.canvas.height;
-        const modelViewProjection = getModelViewProjectionMatrix(deltaTime, this.perspectiveController.cameras[this.perspectiveController.cameraParams.type], this.perspectiveController.inputHandler, aspect);
+        const modelViewProjection: Float32Array = getModelViewProjectionMatrix(deltaTime, this.perspectiveController.cameras[this.perspectiveController.cameraParams.type], this.perspectiveController.inputHandler, aspect);
 
         component.part.render.webgpu.device?.queue.writeBuffer(
             component.uniformBuffer,

@@ -1,4 +1,4 @@
-import { CANVAS_ID, convertNullToUndefined } from './lib';
+import { CANVAS, convertNullToUndefined } from './lib';
 
 export class Webgpu {
 
@@ -29,9 +29,9 @@ export class Webgpu {
 
         this.device = await gpuAdapter.requestDevice();
 
-        this.canvas = convertNullToUndefined(document.querySelector(CANVAS_ID));
+        this.canvas = convertNullToUndefined(document.querySelector(CANVAS));
         if (!this.canvas) {
-            console.error(`Exit initWebgpu: No canvas with id ${CANVAS_ID}`);
+            console.error(`Exit initWebgpu: No canvas with id ${CANVAS}`);
             return this;
         }
 

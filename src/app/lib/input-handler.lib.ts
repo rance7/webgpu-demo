@@ -18,7 +18,7 @@ export default interface Controller {
         readonly zoom: number;
         readonly touching: boolean;
     };
-// eslint-disable-next-line semi
+    // eslint-disable-next-line semi
 }
 
 // eslint-disable-next-line @typescript-eslint/no-type-alias
