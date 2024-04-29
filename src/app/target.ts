@@ -36,7 +36,7 @@ export class Target {
                 width: canvasTexture.width,
                 height: canvasTexture.height,
             },
-            format: 'depth24plus-stencil8',
+            format: 'depth24plus',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
@@ -60,9 +60,14 @@ export class Target {
     }
 
     public async doDraw(): Promise<void> {
-        if (!this.components[0].part?.render?.webgpu?.device || !this.components[0].part.render.webgpu.canvasContext
-            || !this.components[0].part.render.pipeline || !this.components[0].part.render.pickupPipeline) {
-            console.error('Exit doDraw: passEncoder undefined');
+        this.drawComponents();
+        await this.drawIds();
+        window.requestAnimationFrame(async () => this.doDraw());
+    }
+
+    public drawComponents(): void {
+        if (!this.components[0].part?.render?.webgpu?.device || !this.components[0].part.render.webgpu.canvasContext || !this.components[0].part.render.pipeline) {
+            console.error('Exit drawComponents: device, canvasContext or pipeline undefined');
             return;
         }
 
@@ -77,23 +82,25 @@ export class Target {
             depthStencilAttachment:
             {
                 view: this.depthTexture.createView(),
-
                 depthClearValue: 1,
                 depthLoadOp: 'clear',
                 depthStoreOp: 'store',
-
-                stencilClearValue: 0,
-                stencilLoadOp: 'clear',
-                stencilStoreOp: 'store',
             },
         });
+
         this.passEncoder.setPipeline(this.components[0].part.render.pipeline);
         for (const component of this.components) {
-            this.draw(component);
+            this.drawComponent(component);
         }
         this.passEncoder.end();
         this.components[0].part.render.webgpu.device.queue.submit([this.commandEncoder.finish()]);
-        await this.components[0].part.render.webgpu.device.queue.onSubmittedWorkDone();
+    }
+
+    public async drawIds(): Promise<void> {
+        if (!this.components[0].part?.render?.webgpu?.device || !this.components[0].part.render.pickupPipeline) {
+            console.error('Exit drawIds: device or pickupPipeline undefined');
+            return;
+        }
 
         this.pickupCommandEncoder = this.components[0].part.render.webgpu.device.createCommandEncoder();
         this.pickupPassEncoder = this.pickupCommandEncoder.beginRenderPass({
@@ -111,24 +118,56 @@ export class Target {
                 depthStoreOp: 'store',
             },
         });
+
+        const pickupBuffer: GPUBuffer = this.components[0].part.render.webgpu.device.createBuffer({
+            size: Uint32Array.BYTES_PER_ELEMENT * 4,
+            usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        });
+
         this.pickupPassEncoder.setPipeline(this.components[0].part.render.pickupPipeline);
         for (const component of this.components) {
-            await this.drawId(component);
+            this.drawId(component);
         }
         this.pickupPassEncoder.end();
-        this.components[0].part.render.webgpu.device.queue.submit([this.pickupCommandEncoder.finish()]);
-        await this.components[0].part.render.webgpu.device.queue.onSubmittedWorkDone();
 
-        window.requestAnimationFrame(async () => this.doDraw());
+        if (this.perspectiveController.mouseX < 0 || this.perspectiveController.mouseY < 0) {
+            return;
+        }
+        this.pickupCommandEncoder.copyTextureToBuffer({
+            texture: this.pickupTexture,
+            origin: {
+                x: this.perspectiveController.mouseX,
+                y: this.perspectiveController.mouseY,
+            },
+        }, {
+            buffer: pickupBuffer,
+            offset: 0,
+            bytesPerRow: 256,
+            rowsPerImage: 1,
+        }, {
+            width: 1,
+            height: 1,
+        });
+        this.components[0].part.render.webgpu.device.queue.submit([this.pickupCommandEncoder.finish()]);
+
+        await pickupBuffer.mapAsync(GPUMapMode.READ, 0, Uint32Array.BYTES_PER_ELEMENT * 4);
+        const ids: Uint32Array = new Uint32Array(pickupBuffer.getMappedRange(0, Uint32Array.BYTES_PER_ELEMENT * 4));
+        const id: number = ids[0];
+        pickupBuffer.unmap();
+
+        const pickupInfoElem: HTMLElement | null = document.querySelector('#pickup');
+        if (pickupInfoElem) {
+            pickupInfoElem.textContent = `obj#: ${id || 'none'}`;
+        }
     }
 
-    public draw(component: Component): void {
-        if (!component.bindGroup || !component.part?.render?.pipeline || !component.part.vertexNumber || !component.part.vertexBuffer) {
-            console.error('Exit camera1: bindGroup, pipeline, vertexNumber or vertexBuffer undefined');
+    public drawComponent(component: Component): void {
+        if (!component.bindGroup || !component.part?.vertexNumber || !component.part.vertexBuffer) {
+            console.error('Exit camera: bindGroup, vertexNumber or vertexBuffer undefined');
             return;
         }
 
-        if (!component.uniformBuffer || !component.part.render.webgpu?.canvas || !this.passEncoder) {
+        if (!component.uniformBuffer || !component.part.render?.webgpu?.canvas || !this.passEncoder) {
             console.error('Exit camera: uniformBuffer, canvas or passEncoder undefined');
             return;
         }
@@ -152,69 +191,20 @@ export class Target {
         this.passEncoder.draw(component.part.vertexNumber);
     }
 
-    public async drawId(component: Component): Promise<void> {
-        if (!component.part?.render?.pipeline || !component.part.vertexNumber || !component.part.vertexBuffer || !component.bindGroup) {
-            console.error('Exit camera: pipeline, vertexNumber, vertexBuffer or bindGroup undefined');
+    public drawId(component: Component): void {
+        if (!component.part?.vertexNumber || !component.part.vertexBuffer) {
+            console.error('Exit camera: vertexNumber or vertexBuffer undefined');
             return;
         }
 
-        if (!component.part?.render?.webgpu?.device || !component.part.render.pickupPipeline || !component.pickupBindgroup) {
-            console.error('Exit camera: device, pickupPipeline or pickBindgroup undefined');
+        if (!this.pickupPassEncoder || !component.part?.render?.pickupPipeline || !component.pickupBindgroup) {
+            console.error('Exit camera: pickupPassEncoder, pickupPipeline or pickBindgroup undefined');
             return;
         }
 
-        if (!this.pickupPassEncoder || !this.pickupCommandEncoder) {
-            console.error('Exit camera: pickupPassEncoder or pickupCommandEncoder undefined');
-            return;
-        }
-
-        if (this.perspectiveController.mouseX < 0 || this.perspectiveController.mouseY < 0) {
-            return;
-        }
-
-        const pickupBuffer: GPUBuffer = component.part.render.webgpu.device.createBuffer({
-            size: Uint32Array.BYTES_PER_ELEMENT * 4,
-            usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-        });
-
-        this.pickupPassEncoder.setVertexBuffer(0, component.part.vertexBuffer);
         this.pickupPassEncoder.setBindGroup(0, component.pickupBindgroup);
+        this.pickupPassEncoder.setVertexBuffer(0, component.part.vertexBuffer);
         this.pickupPassEncoder.draw(component.part.vertexNumber);
-
-        this.pickupCommandEncoder.copyTextureToBuffer({
-            texture: this.pickupTexture,
-            origin: {
-                x: this.perspectiveController.mouseX,
-                y: this.perspectiveController.mouseY,
-            },
-        }, {
-            buffer: pickupBuffer,
-            offset: 0,
-            bytesPerRow: Uint32Array.BYTES_PER_ELEMENT * 16 * 4,
-            rowsPerImage: 1,
-        }, {
-            width: 1,
-            height: 1,
-        });
-
-        await pickupBuffer.mapAsync(GPUMapMode.READ, 0, Uint32Array.BYTES_PER_ELEMENT * 4);
-        const ids: Uint32Array = new Uint32Array(pickupBuffer.getMappedRange(0, Uint32Array.BYTES_PER_ELEMENT * 4));
-        const id: number = ids[0];
-        console.log(id);
-        pickupBuffer.unmap();
-        const pickupInfoElem: HTMLElement | null = document.querySelector('#pickup');
-        if (!pickupInfoElem || !component.pickUniformBuffer) {
-            console.error('Exit drawId: pickupInfoElem or pickupUniformBuffer undefined');
-            return;
-        }
-        component.part.render.webgpu.device.queue.writeBuffer(
-            component.pickUniformBuffer,
-            0,
-            component.pickupUniformId.buffer,
-            component.pickupUniformId.byteOffset,
-            component.pickupUniformId.byteLength,
-        );
-        pickupInfoElem.textContent = `obj#: ${id || 'none'}`;
     }
 
 }

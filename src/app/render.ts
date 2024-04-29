@@ -68,13 +68,9 @@ export class Render {
                 cullMode: 'back',
             },
             depthStencil: {
-                format: 'depth24plus-stencil8',
+                format: 'depth24plus',
                 depthWriteEnabled: true,
                 depthCompare: 'less',
-                stencilFront: {},
-                stencilBack: {},
-                stencilReadMask: 0x01,
-                stencilWriteMask: 0x01,
             },
         });
 

@@ -23,8 +23,10 @@ async function main(): Promise<void> {
 
     const render: Render = await new Render().initRender(await new Webgpu().initWebgpu(), renderParams);
     const components: Array<Component> = new Array<Component>();
+    let i = 1;
     for (const componentVertex of vertexData) {
-        components.push(await new Component().initComponent(new Part().initPart(render, componentVertex.vertex), componentVertex.textureImgName));
+        components.push(await new Component().initComponent(new Part().initPart(render, componentVertex.vertex), componentVertex.textureImgName, i));
+        i++;
     }
     await new Target(components).doDraw();
 }

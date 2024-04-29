@@ -7,9 +7,11 @@ export class Component {
 
     public uniformBuffer?: GPUBuffer;
 
-    public pickUniformBuffer?: GPUBuffer;
+    public pickupUniformBuffer?: GPUBuffer;
 
-    public pickupUniformId: Uint32Array = new Uint32Array(1);
+    public pickupUniformValues: Uint32Array = new Uint32Array(1);
+
+    public uniformValues: Uint32Array = new Uint32Array(16);
 
     public bindGroup?: GPUBindGroup;
 
@@ -19,7 +21,7 @@ export class Component {
 
     public sampler?: GPUSampler;
 
-    public async initComponent(part: Part, imgName: string | undefined): Promise<this> {
+    public async initComponent(part: Part, imgName: string | undefined, i: number): Promise<this> {
         this.part = part;
         if (!this.part?.render?.webgpu?.device || !this.part.render.webgpu.canvas || !this.part.render.pipeline || !this.part.render.pickupPipeline) {
             console.error('Exit initComponent: device, canvas or pipeline undefined');
@@ -31,10 +33,19 @@ export class Component {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
-        this.pickUniformBuffer = this.part.render.webgpu.device.createBuffer({
+        this.pickupUniformBuffer = this.part.render.webgpu.device.createBuffer({
             size: Uint32Array.BYTES_PER_ELEMENT,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
+
+        this.pickupUniformValues.set([i]);
+        this.part.render.webgpu.device.queue.writeBuffer(
+            this.pickupUniformBuffer,
+            0,
+            this.pickupUniformValues.buffer,
+            this.pickupUniformValues.byteOffset,
+            this.pickupUniformValues.byteLength,
+        );
 
         const textureBlob: ImageBitmapSource | null = await getTextureBlob(imgName ? `${MODEL_PATH}/${imgName}` : './assets/grey.jpg');
         if (!textureBlob) {
@@ -105,7 +116,7 @@ export class Component {
                 },
                 {
                     binding: 3,
-                    resource: { buffer: this.pickUniformBuffer },
+                    resource: { buffer: this.pickupUniformBuffer },
                 },
             ],
         });
