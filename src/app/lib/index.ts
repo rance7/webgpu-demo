@@ -55,3 +55,13 @@ export async function getTextureBlob(path: string): Promise<ImageBitmapSource | 
     }
     return null;
 }
+
+export function getRatio(): number {
+    let ratio = 0;
+    if (window.devicePixelRatio !== undefined) {
+        ratio = window.devicePixelRatio;
+    } else if (window.outerWidth !== undefined && window.innerWidth !== undefined) {
+        ratio = window.outerWidth / window.innerWidth;
+    }
+    return ratio;
+}

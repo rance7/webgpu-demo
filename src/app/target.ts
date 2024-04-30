@@ -138,15 +138,19 @@ export class Target {
             this.drawId(component);
         }
         this.pickupPassEncoder.end();
-
-        if (this.perspectiveController.mouseX < 0 || this.perspectiveController.mouseY < 0) {
+        if (this.perspectiveController.mouseX < 0 || this.perspectiveController.mouseY < 0 || !this.components[0].part.render.webgpu.canvas) {
+            return;
+        }
+        const pixelX = this.perspectiveController.mouseX * this.components[0].part.render.webgpu.canvas.width / this.components[0].part.render.webgpu.canvas.clientWidth;
+        const pixelY = this.perspectiveController.mouseY * this.components[0].part.render.webgpu.canvas.height / this.components[0].part.render.webgpu.canvas.clientHeight;
+        if (pixelX < 0 || pixelY < 0) {
             return;
         }
         this.pickupCommandEncoder.copyTextureToBuffer({
             texture: this.pickupTexture,
             origin: {
-                x: this.perspectiveController.mouseX,
-                y: this.perspectiveController.mouseY,
+                x: pixelX,
+                y: pixelY,
             },
         }, {
             buffer: pickupBuffer,
