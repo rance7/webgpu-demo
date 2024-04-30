@@ -1,3 +1,5 @@
+import { CURRENT_COMPONENT, SELECTED_COMPONENT } from '.';
+
 // eslint-disable-next-line import/exports-last, import/no-default-export
 export default interface Controller {
 
@@ -88,7 +90,18 @@ export function createInputHandler(
     window.addEventListener('keyup', e => setDigital(e, false));
 
     canvas.style.touchAction = 'pinch-zoom';
+    const currentElem: HTMLElement | null = document.querySelector(CURRENT_COMPONENT);
+    const selectedElem: HTMLElement | null = document.querySelector(SELECTED_COMPONENT);
     canvas.addEventListener('pointerdown', () => {
+        let id = 0;
+        if (currentElem?.textContent) {
+            const currentContent: string = currentElem.textContent.split(' ')[1];
+            id = currentContent == 'none' ? 0 : Number(currentContent);
+        }
+
+        if (selectedElem) {
+            selectedElem.textContent = `selected-elem#: ${id}`;
+        }
         mouseDown = true;
     });
     canvas.addEventListener('pointerup', () => {

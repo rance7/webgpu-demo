@@ -23,6 +23,10 @@ export class Target {
 
     public components!: Array<Component>;
 
+    public currentElem: HTMLElement | null = document.querySelector(CURRENT_COMPONENT);
+
+    public selectedElem: HTMLElement | null = document.querySelector(SELECTED_COMPONENT);
+
     public currentComonentId: number = 0;
 
     public seletedComponentId: number = 0;
@@ -160,14 +164,15 @@ export class Target {
         this.currentComonentId = ids[0];
         pickupBuffer.unmap();
 
-        const currentElem: HTMLElement | null = document.querySelector(CURRENT_COMPONENT);
-        if (currentElem) {
-            currentElem.textContent = `current-elem#: ${this.currentComonentId || 'none'}`;
+        if (this.currentElem) {
+            this.currentElem.textContent = `current-elem#: ${this.currentComonentId || 'none'}`;
         }
 
-        const selectedElem: HTMLElement | null = document.querySelector(SELECTED_COMPONENT);
-        if (selectedElem) {
-            selectedElem.textContent = `selected-elem#: ${this.seletedComponentId || 'none'}`;
+        if (this.selectedElem?.textContent) {
+            const currentContent: string = this.selectedElem.textContent.split(' ')[1];
+            const id = currentContent == 'none' ? 0 : Number(currentContent);
+            this.seletedComponentId = id;
+            this.selectedElem.textContent = `selected-elem#: ${id || 'none'}`;
         }
     }
 
@@ -187,18 +192,32 @@ export class Target {
         this.perspectiveController.lastFrameTime = now;
         const aspect = component.part.render.webgpu.canvas.width / component.part.render.webgpu.canvas.height;
         const modelViewProjection: Float32Array = getModelViewProjectionMatrix(deltaTime, this.perspectiveController.cameras[this.perspectiveController.cameraParams.type], this.perspectiveController.inputHandler, aspect);
+        if (this.seletedComponentId == 0) {
+            component.part.render.webgpu.device?.queue.writeBuffer(
+                component.uniformBuffer,
+                0,
+                modelViewProjection.buffer,
+                modelViewProjection.byteOffset,
+                modelViewProjection.byteLength,
+            );
 
-        component.part.render.webgpu.device?.queue.writeBuffer(
-            component.uniformBuffer,
-            0,
-            modelViewProjection.buffer,
-            modelViewProjection.byteOffset,
-            modelViewProjection.byteLength,
-        );
+            this.passEncoder.setVertexBuffer(0, component.part.vertexBuffer);
+            this.passEncoder.setBindGroup(0, component.bindGroup);
+            this.passEncoder.draw(component.part.vertexNumber);
+            // eslint-disable-next-line sonarjs/no-duplicated-branches
+        } else if (this.seletedComponentId == component.pickupUniformValues[0]) {
+            component.part.render.webgpu.device?.queue.writeBuffer(
+                component.uniformBuffer,
+                0,
+                modelViewProjection.buffer,
+                modelViewProjection.byteOffset,
+                modelViewProjection.byteLength,
+            );
 
-        this.passEncoder.setVertexBuffer(0, component.part.vertexBuffer);
-        this.passEncoder.setBindGroup(0, component.bindGroup);
-        this.passEncoder.draw(component.part.vertexNumber);
+            this.passEncoder.setVertexBuffer(0, component.part.vertexBuffer);
+            this.passEncoder.setBindGroup(0, component.bindGroup);
+            this.passEncoder.draw(component.part.vertexNumber);
+        }
     }
 
     public drawId(component: Component): void {

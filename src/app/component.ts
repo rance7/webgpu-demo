@@ -115,7 +115,7 @@ export class Component {
                     resource: { buffer: this.uniformBuffer },
                 },
                 {
-                    binding: 3,
+                    binding: 1,
                     resource: { buffer: this.pickupUniformBuffer },
                 },
             ],

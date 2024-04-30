@@ -25,7 +25,7 @@ struct PickUniform {
     id: u32,
 }
 
-@group(0) @binding(3) var<uniform> pickupUniforms : PickUniform;
+@group(0) @binding(1) var<uniform> pickupUniforms : PickUniform;
 
 @fragment
 fn FragmentMain(v: VertexToFragmentStruct) -> @location(0) vec4f {
