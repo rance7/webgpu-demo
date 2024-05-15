@@ -1,8 +1,10 @@
 import { Nullable } from './model.lib';
 
+export const FILE_NAME: string = 'pistol';
+
 export const SHADER_PATH: string = './assets/shader.wgsl';
 
-export const MODEL_PATH: string = './assets/cube';
+export const MODEL_PATH: string = `./assets/${FILE_NAME}`;
 
 export const CANVAS: string = '#canvas';
 

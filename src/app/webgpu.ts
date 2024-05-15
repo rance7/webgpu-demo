@@ -10,10 +10,6 @@ export class Webgpu {
 
     public canvasContext?: GPUCanvasContext;
 
-    public commandEncoder?: GPUCommandEncoder;
-
-    public renderPassEncoder?: GPURenderPassEncoder;
-
     public async initWebgpu(): Promise<this> {
         if (!Reflect.has(window.navigator, 'gpu')) {
             console.error('Exit initWebgpu: No gpu available');
@@ -57,8 +53,6 @@ export class Webgpu {
         this.device = undefined;
         this.canvas = undefined;
         this.canvasContext = undefined;
-        this.commandEncoder = undefined;
-        this.renderPassEncoder = undefined;
     }
 
 }

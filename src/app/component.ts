@@ -47,7 +47,7 @@ export class Component {
             this.pickupUniformValues.byteLength,
         );
 
-        const textureBlob: ImageBitmapSource | null = await getTextureBlob(imgName ? `${MODEL_PATH}/${imgName}` : './assets/grey.jpg');
+        const textureBlob: ImageBitmapSource | null = await getTextureBlob(imgName ? `${MODEL_PATH}/${imgName}` : './assets/sliver.png');
         if (!textureBlob) {
             console.error('Exit initComponent: fail to get texture blob');
             return this;

@@ -1,5 +1,5 @@
 import { Component } from './component';
-import { MODEL_PATH } from './lib';
+import { FILE_NAME, MODEL_PATH } from './lib';
 import { RenderParams, Vertices } from './lib/model.lib';
 import { ObjParser } from './lib/obj-parser.lib';
 import { Part } from './part';
@@ -15,7 +15,7 @@ async function main(): Promise<void> {
     };
 
     const objParser: ObjParser = new ObjParser();
-    const vertexData: Array<Vertices> | null = await objParser.parseObj2Vertices(`${MODEL_PATH}/cube.obj`);
+    const vertexData: Array<Vertices> | null = await objParser.parseObj2Vertices(`${MODEL_PATH}/${FILE_NAME}.obj`);
     if (!vertexData) {
         console.error('Exit main: vertexData undefined');
         return;
